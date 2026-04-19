@@ -1,0 +1,46 @@
+# Secrets — never commit
+.env
+.env.*.local
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+dist/
+build/
+.next/
+.nuxt/
+out/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Terraform / Infra state
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Misc
+.cache/
+tmp/
