@@ -1,0 +1,30 @@
+---
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const images: any[] = Array.isArray(data.images) ? data.images : [];
+---
+
+<section class="be-gallery">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  <div class="be-gallery__grid">
+    {images.map((item) => (
+      <figure>
+        <img src={item.image?.src} alt={item.image?.alt ?? ""} loading="lazy" />
+        {item.caption && <figcaption>{item.caption}</figcaption>}
+      </figure>
+    ))}
+  </div>
+</section>
+
+<style>
+  .be-gallery { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.25rem; }
+  .be-gallery h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 1.5rem; }
+  .be-gallery__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; }
+  .be-gallery figure { margin: 0; }
+  .be-gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0.5rem; }
+  .be-gallery figcaption { font-size: 0.85rem; color: #6b7280; margin-top: 0.35rem; font-family: var(--f-body, system-ui, sans-serif); }
+</style>

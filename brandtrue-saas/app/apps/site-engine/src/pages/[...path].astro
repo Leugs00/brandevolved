@@ -1,0 +1,28 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import BlockRenderer from "@brandevolved/blocks/BlockRenderer.astro";
+import { fetchSite } from "../lib/fetch.ts";
+
+export async function getStaticPaths() {
+  const payload = await fetchSite();
+  return payload.pages.map((page) => ({
+    params: { path: page.path === "/" ? undefined : page.path.replace(/^\//, "") },
+    props: { page, site: payload.site, context: payload.context },
+  }));
+}
+
+const { page, site, context } = Astro.props;
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={page.title}
+  description={page.meta_description}
+  settings={site.settings}
+  supabaseUrl={context.supabaseUrl}
+  anonKey={context.anonKey}
+  currentPath={page.path}
+>
+  {page.blocks.map((block) => <BlockRenderer block={block} context={context} />)}
+</SiteLayout>

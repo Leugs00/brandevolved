@@ -1,0 +1,81 @@
+---
+import type { SiteSettings } from "../lib/fetch.ts";
+
+interface Props {
+  siteName: string;
+  siteId: string;
+  title: string;
+  description?: string | null;
+  settings: SiteSettings;
+  supabaseUrl: string;
+  anonKey: string;
+  currentPath: string;
+}
+
+const { siteName, siteId, title, description, settings, supabaseUrl, anonKey, currentPath } = Astro.props;
+const theme = settings.theme ?? {};
+const nav = settings.navigation ?? [];
+
+const themeVars = [
+  `--c-primary:${theme.primary ?? "#0f766e"}`,
+  `--c-accent:${theme.accent ?? "#f59e0b"}`,
+  `--c-bg:${theme.background ?? "#ffffff"}`,
+  `--c-text:${theme.text ?? "#1f2937"}`,
+  `--f-heading:${theme.font_heading ?? "Georgia, serif"}`,
+  `--f-body:${theme.font_body ?? "system-ui, sans-serif"}`,
+].join(";");
+---
+
+<html lang="en" style={themeVars}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <meta
+      name="be-analytics"
+      data-site-id={siteId}
+      data-supabase-url={supabaseUrl}
+      data-supabase-key={anonKey}
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-header__brand" href="/">{siteName}</a>
+      <nav>
+        {nav.map((item) => (
+          <a href={item.href} class:list={{ active: item.href === currentPath }}>{item.label}</a>
+        ))}
+      </nav>
+    </header>
+    <main><slot /></main>
+    <footer class="site-footer">
+      <p>{settings.footer_text ?? `© ${new Date().getFullYear()} ${siteName}`}</p>
+    </footer>
+    <script src="/beacon.js" defer is:inline></script>
+  </body>
+</html>
+
+<style is:global>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--c-bg, #fff); }
+</style>
+
+<style>
+  .site-header {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+    padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;
+    font-family: var(--f-body, system-ui, sans-serif); background: var(--c-bg, #fff);
+  }
+  .site-header__brand {
+    font-family: var(--f-heading, Georgia, serif); font-size: 1.3rem; font-weight: 700;
+    color: var(--c-primary, #0f766e); text-decoration: none;
+  }
+  nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
+  nav a { color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.95rem; }
+  nav a.active, nav a:hover { color: var(--c-primary, #0f766e); }
+  .site-footer {
+    border-top: 1px solid #e5e7eb; padding: 1.5rem; text-align: center;
+    color: #6b7280; font-size: 0.9rem; font-family: var(--f-body, system-ui, sans-serif);
+  }
+</style>

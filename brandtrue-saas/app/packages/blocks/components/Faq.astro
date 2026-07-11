@@ -1,0 +1,29 @@
+---
+import sanitizeHtml from "sanitize-html";
+
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const items: any[] = Array.isArray(data.items) ? data.items : [];
+---
+
+<section class="be-faq">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  {items.map((item) => (
+    <details>
+      <summary>{item.question}</summary>
+      <div set:html={sanitizeHtml(String(item.answer ?? ""))} />
+    </details>
+  ))}
+</section>
+
+<style>
+  .be-faq { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-faq h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 1.5rem; }
+  details { border-bottom: 1px solid #e5e7eb; padding: 0.9rem 0; }
+  summary { cursor: pointer; font-weight: 600; color: var(--c-text, #1f2937); }
+  details div { padding-top: 0.6rem; color: #4b5563; line-height: 1.6; }
+</style>

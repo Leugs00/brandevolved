@@ -1,0 +1,79 @@
+---
+import sanitizeHtml from "sanitize-html";
+
+interface Props {
+  data: Record<string, unknown>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+
+const escape = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Two shapes are supported: the editor writes { html }, while the WordPress
+// importer produced { heading, text, images } with \n\n paragraph breaks.
+let raw: string;
+let field: string;
+if (typeof data.html === "string" && data.html.length) {
+  raw = data.html;
+  field = "html";
+} else {
+  const parts: string[] = [];
+  if (typeof data.heading === "string" && data.heading) {
+    parts.push(`<h1>${escape(data.heading)}</h1>`);
+  }
+  if (typeof data.text === "string" && data.text) {
+    parts.push(
+      ...data.text
+        .split(/\n{2,}/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => `<p>${escape(p).replace(/\n/g, "<br/>")}</p>`),
+    );
+  }
+  if (Array.isArray(data.images)) {
+    for (const img of data.images as { src?: string; alt?: string }[]) {
+      if (img?.src) parts.push(`<img src="${escape(img.src)}" alt="${escape(img.alt ?? "")}" loading="lazy" />`);
+    }
+  }
+  raw = parts.join("\n");
+  field = "text";
+}
+
+const clean = sanitizeHtml(raw, {
+  allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "figure", "figcaption"]),
+  allowedAttributes: {
+    ...sanitizeHtml.defaults.allowedAttributes,
+    img: ["src", "alt", "width", "height", "loading"],
+    a: ["href", "name", "target", "rel"],
+    "*": ["class"],
+  },
+});
+---
+
+<div class="be-richtext" data-field={field} set:html={clean} />
+
+<style>
+  .be-richtext {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem;
+    font-family: var(--f-body, system-ui, sans-serif);
+    color: var(--c-text, #1f2937);
+    line-height: 1.7;
+  }
+  .be-richtext :global(h1),
+  .be-richtext :global(h2),
+  .be-richtext :global(h3) {
+    font-family: var(--f-heading, inherit);
+    line-height: 1.25;
+    margin: 1.5em 0 0.5em;
+  }
+  .be-richtext :global(h1) { font-size: 2rem; }
+  .be-richtext :global(h2) { font-size: 1.5rem; }
+  .be-richtext :global(a) { color: var(--c-primary, #0f766e); }
+  .be-richtext :global(img) { max-width: 100%; height: auto; border-radius: 0.5rem; }
+  .be-richtext :global(p) { margin: 0.75em 0; }
+  .be-richtext :global(ul), .be-richtext :global(ol) { padding-left: 1.5rem; }
+</style>

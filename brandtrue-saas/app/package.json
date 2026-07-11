@@ -9,5 +9,8 @@
     "build:site": "pnpm --filter site-engine build",
     "wp-import": "pnpm --filter wp-import start"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "playwright-core": "^1.61.1"
+  }
 }

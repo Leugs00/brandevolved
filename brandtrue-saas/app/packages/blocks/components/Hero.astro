@@ -1,0 +1,54 @@
+---
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const img = data.image ?? {};
+const align = data.align === "left" ? "left" : "center";
+---
+
+<section class:list={["be-hero", `be-hero--${align}`]} style={img.src ? `background-image:linear-gradient(rgba(15,23,42,.55),rgba(15,23,42,.55)),url('${img.src}')` : undefined}>
+  <div class="be-hero__inner">
+    <h1 data-field="heading">{data.heading}</h1>
+    {data.subheading && <p class="be-hero__sub" data-field="subheading">{data.subheading}</p>}
+    {data.cta_label && (
+      <a class="be-hero__cta" href={data.cta_href || "#"} data-field="cta_label">{data.cta_label}</a>
+    )}
+  </div>
+</section>
+
+<style>
+  .be-hero {
+    padding: 5rem 1.25rem;
+    background-color: var(--c-primary, #0f766e);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+  }
+  .be-hero--center { text-align: center; }
+  .be-hero__inner { max-width: 52rem; margin: 0 auto; }
+  .be-hero h1 {
+    font-family: var(--f-heading, Georgia, serif);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    line-height: 1.15;
+    margin: 0 0 1rem;
+  }
+  .be-hero__sub {
+    font-family: var(--f-body, system-ui, sans-serif);
+    font-size: 1.2rem;
+    opacity: 0.92;
+    margin: 0 0 2rem;
+  }
+  .be-hero__cta {
+    display: inline-block;
+    background: var(--c-accent, #f59e0b);
+    color: #1f2937;
+    font-family: var(--f-body, system-ui, sans-serif);
+    font-weight: 600;
+    padding: 0.8rem 1.8rem;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+</style>

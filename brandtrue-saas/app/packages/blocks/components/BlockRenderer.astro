@@ -1,0 +1,54 @@
+---
+import type { RenderBlock, RenderContext } from "../src/index.ts";
+import Hero from "./Hero.astro";
+import RichText from "./RichText.astro";
+import ImageBlock from "./ImageBlock.astro";
+import Gallery from "./Gallery.astro";
+import Features from "./Features.astro";
+import Cta from "./Cta.astro";
+import CollectionList from "./CollectionList.astro";
+import FormEmbed from "./FormEmbed.astro";
+import Faq from "./Faq.astro";
+import TestimonialStrip from "./TestimonialStrip.astro";
+
+interface Props {
+  block: RenderBlock;
+  context: RenderContext;
+}
+
+const { block, context } = Astro.props;
+
+const components: Record<string, any> = {
+  hero: Hero,
+  text: RichText,
+  image: ImageBlock,
+  gallery: Gallery,
+  features: Features,
+  cta: Cta,
+  collection_list: CollectionList,
+  form_embed: FormEmbed,
+  faq: Faq,
+  testimonial_strip: TestimonialStrip,
+};
+
+const Component = components[block.kind];
+---
+
+{
+  Component ? (
+    <div
+      class="be-block"
+      data-block-id={context.editable ? block.id : undefined}
+      data-block-kind={context.editable ? block.kind : undefined}
+      data-block-locked={context.editable ? String(block.locked) : undefined}
+    >
+      <Component data={block.data} context={context} />
+    </div>
+  ) : context.editable ? (
+    <div class="be-block" data-block-id={block.id} data-block-kind={block.kind}>
+      <p style="padding:1rem;background:#fef2f2;color:#991b1b;">
+        Unknown block kind: {block.kind}
+      </p>
+    </div>
+  ) : null
+}

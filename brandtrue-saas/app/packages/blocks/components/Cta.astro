@@ -1,0 +1,30 @@
+---
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+---
+
+<section class="be-cta">
+  <div class="be-cta__inner">
+    <h2 data-field="heading">{data.heading}</h2>
+    {data.body && <p data-field="body">{data.body}</p>}
+    {data.button_label && (
+      <a class="be-cta__btn" href={data.button_href || "#"} data-field="button_label">{data.button_label}</a>
+    )}
+  </div>
+</section>
+
+<style>
+  .be-cta { background: var(--c-primary, #0f766e); color: #fff; padding: 3.5rem 1.25rem; text-align: center; }
+  .be-cta__inner { max-width: 42rem; margin: 0 auto; }
+  .be-cta h2 { font-family: var(--f-heading, Georgia, serif); font-size: 1.9rem; margin: 0 0 0.75rem; }
+  .be-cta p { font-family: var(--f-body, system-ui, sans-serif); opacity: 0.92; margin: 0 0 1.75rem; }
+  .be-cta__btn {
+    display: inline-block; background: var(--c-accent, #f59e0b); color: #1f2937;
+    font-family: var(--f-body, system-ui, sans-serif); font-weight: 600;
+    padding: 0.8rem 1.8rem; border-radius: 999px; text-decoration: none;
+  }
+</style>
