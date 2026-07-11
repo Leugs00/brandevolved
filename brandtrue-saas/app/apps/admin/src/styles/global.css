@@ -1,14 +1,35 @@
 @import "tailwindcss";
+@import "./brand.css";
 
-@theme {
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+/* Map Tailwind's utility palette onto the swappable brand tokens.
+   Utilities like bg-brand-700 / text-accent resolve to brand.css vars. */
+@theme inline {
+  --color-brand-50: color-mix(in oklab, var(--brand-mint-pale) 35%, white);
+  --color-brand-100: var(--brand-mint-pale);
+  --color-brand-200: var(--brand-mint);
+  --color-brand-400: var(--brand-secondary);
+  --color-brand-600: var(--brand-primary);
+  --color-brand-700: var(--brand-primary);
+  --color-brand-800: var(--brand-primary-dark);
+  --color-brand-900: var(--brand-primary-deepest);
+  --color-accent: var(--brand-accent);
+  --color-lilac: var(--brand-lilac);
+  --font-sans: var(--brand-font-body);
+  --font-serif: var(--brand-font-heading);
+  --radius-lg: var(--brand-radius-sm);
+  --radius-xl: var(--brand-radius);
+  --radius-2xl: var(--brand-radius-lg);
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply antialiased;
+  background: var(--brand-paper);
+  color: var(--brand-ink);
+  font-family: var(--brand-font-body);
+}
+
+h1 {
+  font-family: var(--brand-font-heading);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }

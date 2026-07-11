@@ -10,6 +10,10 @@ export default defineConfig({
   output: "server",
   adapter: node({ mode: "standalone" }),
   server: { port: 4322 },
+  // Astro's origin check misfires behind the bare-IP node server; CSRF is
+  // covered by the SameSite=Lax Supabase auth cookies (cross-site POSTs
+  // arrive unauthenticated and get redirected to /login).
+  security: { checkOrigin: false },
   vite: {
     plugins: [tailwindcss()],
     envDir: fileURLToPath(new URL("../..", import.meta.url)),

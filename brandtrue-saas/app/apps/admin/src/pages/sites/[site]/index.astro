@@ -93,7 +93,7 @@ const tiles = [
                 <title>{`${fmtDay(d.day)}: ${d.pageviews} views, ${d.visitors} visitors`}</title>
               </rect>
               {h > 0 && (
-                <rect x={x} y={top} width={barW} height={h} rx="4" ry="4" fill="#0d9488" class="mark">
+                <rect x={x} y={top} width={barW} height={h} rx="4" ry="4" fill="var(--brand-chart)" class="mark">
                   <title>{`${fmtDay(d.day)}: ${d.pageviews} views, ${d.visitors} visitors`}</title>
                 </rect>
               )}
@@ -149,5 +149,5 @@ const tiles = [
 </AdminLayout>
 
 <style>
-  .bar:hover .mark { fill: #0f766e; }
+  .bar:hover .mark { fill: var(--brand-chart-hover); }
 </style>
