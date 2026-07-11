@@ -1,0 +1,14 @@
+{
+  "name": "@brandevolved/blocks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./BlockRenderer.astro": "./components/BlockRenderer.astro",
+    "./components/*": "./components/*"
+  },
+  "dependencies": {
+    "@brandevolved/shared": "workspace:*"
+  }
+}

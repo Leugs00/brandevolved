@@ -1,0 +1,16 @@
+{
+  "name": "site-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@brandevolved/blocks": "workspace:*",
+    "@brandevolved/shared": "workspace:*",
+    "astro": "^5.0.0"
+  }
+}

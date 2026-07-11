@@ -1,0 +1,13 @@
+{
+  "name": "brandevolved-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:admin": "pnpm --filter admin dev",
+    "build:admin": "pnpm --filter admin build",
+    "dev:site": "pnpm --filter site-engine dev",
+    "build:site": "pnpm --filter site-engine build",
+    "wp-import": "pnpm --filter wp-import start"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
