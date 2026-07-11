@@ -9,6 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.13",
     "@astrojs/node": "^9.0.0",
     "@brandevolved/blocks": "workspace:*",
     "@brandevolved/shared": "workspace:*",
