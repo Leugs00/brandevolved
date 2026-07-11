@@ -18,7 +18,7 @@ const theme = settings.theme ?? {};
 const nav = settings.navigation ?? [];
 
 const themeVars = [
-  `--c-primary:${theme.primary ?? "#0f766e"}`,
+  `--c-primary:${theme.primary ?? "#008378"}`,
   `--c-accent:${theme.accent ?? "#f59e0b"}`,
   `--c-bg:${theme.background ?? "#ffffff"}`,
   `--c-text:${theme.text ?? "#1f2937"}`,
@@ -65,11 +65,11 @@ const themeVars = [
   }
   .site-header__brand {
     font-family: var(--f-heading, Georgia, serif); font-size: 1.3rem; font-weight: 700;
-    color: var(--c-primary, #0f766e); text-decoration: none;
+    color: var(--c-primary, #008378); text-decoration: none;
   }
   nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
   nav a { color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.95rem; }
-  nav a.active, nav a:hover { color: var(--c-primary, #0f766e); }
+  nav a.active, nav a:hover { color: var(--c-primary, #008378); }
   .site-footer {
     border-top: 1px solid #e5e7eb; padding: 1.5rem; text-align: center;
     color: #6b7280; font-size: 0.9rem; font-family: var(--f-body, system-ui, sans-serif);
