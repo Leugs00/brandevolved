@@ -1,0 +1,157 @@
+---
+import AdminLayout from "../layouts/AdminLayout.astro";
+import { isAgency } from "../lib/nav.ts";
+import { serviceClient } from "../lib/supabase.ts";
+import { sendEmail } from "@brandevolved/shared/email";
+
+const { db, membership } = Astro.locals;
+if (!membership || !isAgency(membership.role)) return Astro.redirect("/");
+
+const orgId = membership.organization_id;
+const service = serviceClient();
+let error: string | null = null;
+let inviteResult: { email: string; password: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+
+  if (action === "invite" && service) {
+    const email = String(form.get("email") ?? "").trim().toLowerCase();
+    const role = String(form.get("role") ?? "client") as "super_admin" | "agency_developer" | "designer" | "client";
+    const clientId = String(form.get("client_id") ?? "");
+    const password = crypto.randomUUID().slice(0, 12);
+
+    const { data: created, error: e } = await service.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (e) error = e.message;
+    else {
+      const { data: newMembership, error: mErr } = await service
+        .from("memberships")
+        .insert({ user_id: created.user.id, organization_id: orgId, role })
+        .select("id")
+        .single();
+      if (mErr) error = mErr.message;
+      else {
+        if (role === "client" && clientId) {
+          await service.from("client_scopes").insert({ membership_id: newMembership.id, client_id: clientId });
+        }
+        inviteResult = { email, password };
+        await sendEmail(db, orgId, {
+          to: [email],
+          subject: "You've been invited to the BrandEvolved dashboard",
+          html: `<p>An account was created for you. Sign in with this email and the temporary password your agency shares with you, then change it.</p>`,
+          template: "team-invite",
+          payload: { role },
+        });
+      }
+    }
+  } else if (action === "remove") {
+    const { error: e } = await db.from("memberships").delete().eq("id", String(form.get("id")));
+    error = e?.message ?? null;
+    if (!error) return Astro.redirect("/team");
+  }
+}
+
+const [{ data: members }, { data: clients }] = await Promise.all([
+  db.rpc("org_members", { org: orgId }),
+  db.from("clients").select("id, name").order("name"),
+]);
+
+const roleLabel: Record<string, string> = {
+  super_admin: "Super admin",
+  agency_developer: "Developer",
+  designer: "Designer",
+  client: "Client",
+};
+---
+
+<AdminLayout title="Team" active="team">
+  <div class="p-8 max-w-4xl space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Team</h1>
+      <p class="text-sm text-slate-500 mt-1">Who can access this workspace, and what they can touch.</p>
+    </div>
+
+    {error && <p class="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+    {inviteResult && (
+      <div class="text-sm bg-emerald-50 text-emerald-800 rounded-lg px-4 py-3">
+        <p class="font-semibold">Account created for {inviteResult.email}</p>
+        <p class="mt-1">Temporary password: <code class="bg-emerald-100 px-1.5 py-0.5 rounded">{inviteResult.password}</code> — share it securely and ask them to change it after signing in.</p>
+      </div>
+    )}
+
+    <div class="rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-100">
+            <th class="px-4 py-2.5 font-medium">Email</th>
+            <th class="px-4 py-2.5 font-medium">Role</th>
+            <th class="px-4 py-2.5 font-medium">Client access</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {(members ?? []).map((m) => (
+            <tr class="border-b border-slate-50">
+              <td class="px-4 py-2.5 font-medium">{m.email}</td>
+              <td class="px-4 py-2.5">{roleLabel[m.role]}</td>
+              <td class="px-4 py-2.5 text-slate-500">{m.role === "client" ? (m.client_names ?? []).join(", ") || "—" : "All clients"}</td>
+              <td class="px-4 py-2.5 text-right">
+                {m.membership_id !== membership.id && membership.role === "super_admin" && (
+                  <form method="post" onsubmit="return confirm('Remove this member?')">
+                    <input type="hidden" name="action" value="remove" />
+                    <input type="hidden" name="id" value={m.membership_id} />
+                    <button class="text-xs text-red-500 hover:underline">Remove</button>
+                  </form>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <section class="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 class="font-semibold mb-3">Invite someone</h2>
+      {service ? (
+        <form method="post" class="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="action" value="invite" />
+          <label class="block text-sm">
+            <span class="block text-xs text-slate-500 mb-1">Email</span>
+            <input name="email" type="email" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-64" />
+          </label>
+          <label class="block text-sm">
+            <span class="block text-xs text-slate-500 mb-1">Role</span>
+            <select name="role" class="rounded-lg border border-slate-300 px-2.5 py-1.5">
+              <option value="client">Client</option>
+              <option value="designer">Designer</option>
+              <option value="agency_developer">Developer</option>
+              <option value="super_admin">Super admin</option>
+            </select>
+          </label>
+          <label class="block text-sm">
+            <span class="block text-xs text-slate-500 mb-1">Client (for client role)</span>
+            <select name="client_id" class="rounded-lg border border-slate-300 px-2.5 py-1.5">
+              <option value="">—</option>
+              {(clients ?? []).map((c) => <option value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+          <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Create account</button>
+        </form>
+      ) : (
+        <div class="text-sm text-slate-600 space-y-2">
+          <p>
+            Inviting from here needs the <code class="bg-slate-100 px-1.5 py-0.5 rounded">SUPABASE_SERVICE_ROLE_KEY</code> in
+            <code class="bg-slate-100 px-1.5 py-0.5 rounded">brandtrue-saas/app/.env</code>
+            (Supabase dashboard → Project Settings → API keys).
+          </p>
+          <p>Until then, create users in the Supabase dashboard (Authentication → Users → Add user) and link them with the SQL snippet in <span class="font-medium">brandtrue-saas/docs/setup.md</span>.</p>
+        </div>
+      )}
+    </section>
+  </div>
+</AdminLayout>

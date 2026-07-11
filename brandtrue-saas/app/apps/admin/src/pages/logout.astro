@@ -1,0 +1,6 @@
+---
+if (Astro.request.method === "POST") {
+  await Astro.locals.db.auth.signOut();
+}
+return Astro.redirect("/login");
+---

@@ -1,0 +1,112 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../lib/site.ts";
+import { isAgency } from "../../../lib/nav.ts";
+
+const { db, membership, user } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+if (!membership || membership.role === "client") return Astro.redirect(`/sites/${site.id}`);
+
+const agency = isAgency(membership.role);
+let error: string | null = null;
+
+if (Astro.request.method === "POST" && agency) {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+  if (action === "publish") {
+    const { error: e } = await db.from("deploys").insert({
+      organization_id: site.organization_id,
+      site_id: site.id,
+      triggered_by: user!.id,
+      note: "Queued from admin",
+    });
+    error = e?.message ?? null;
+    if (!error && site.status === "draft") {
+      await db.from("sites").update({ status: "building" }).eq("id", site.id);
+    }
+  } else if (action === "site-status") {
+    const status = String(form.get("status")) as "draft" | "building" | "live" | "archived";
+    const { error: e } = await db.from("sites").update({ status }).eq("id", site.id);
+    error = e?.message ?? null;
+  }
+  if (!error) return Astro.redirect(`/sites/${site.id}/publish`);
+}
+
+const { data: deploys } = await db
+  .from("deploys")
+  .select("id, status, url, note, created_at")
+  .eq("site_id", site.id)
+  .order("created_at", { ascending: false })
+  .limit(20);
+
+const statusStyle: Record<string, string> = {
+  queued: "bg-slate-100 text-slate-600",
+  building: "bg-amber-100 text-amber-700",
+  live: "bg-emerald-100 text-emerald-700",
+  failed: "bg-red-100 text-red-700",
+};
+---
+
+<AdminLayout title={`Publish · ${site.name}`} site={site} active="publish">
+  <div class="p-8 max-w-3xl space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">Publish</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        Publishing rebuilds the static site from the current published pages and deploys it to Cloudflare Pages.
+      </p>
+    </div>
+
+    {error && <p class="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+
+    <div class="rounded-xl border border-slate-200 bg-white p-5 flex flex-wrap items-center gap-4">
+      <div class="grow">
+        <p class="font-medium">{site.name}</p>
+        <p class="text-sm text-slate-500">
+          {site.primary_domain ?? "No domain yet"} · Cloudflare project: {site.cloudflare_project ?? "not set"}
+        </p>
+      </div>
+      {agency && (
+        <form method="post" class="flex items-center gap-2">
+          <input type="hidden" name="action" value="site-status" />
+          <select name="status" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" onchange="this.form.submit()">
+            {["draft", "building", "live", "archived"].map((s) => <option value={s} selected={s === site.status}>{s}</option>)}
+          </select>
+        </form>
+      )}
+      {agency && (
+        <form method="post">
+          <input type="hidden" name="action" value="publish" />
+          <button class="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">Publish site</button>
+        </form>
+      )}
+    </div>
+
+    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      <p class="font-semibold">Cloudflare deploys are not wired up yet.</p>
+      <p class="mt-1">
+        Queued publishes are recorded below. To ship a build right now, run
+        <code class="bg-amber-100 px-1.5 py-0.5 rounded">SITE_ID={site.id} pnpm build:site</code>
+        and upload <code class="bg-amber-100 px-1.5 py-0.5 rounded">apps/site-engine/dist/</code> to Cloudflare Pages.
+        Once a <code class="bg-amber-100 px-1.5 py-0.5 rounded">CLOUDFLARE_API_TOKEN</code> is added, this button will deploy automatically —
+        see <span class="font-medium">brandtrue-saas/docs/cloudflare-setup.md</span>.
+      </p>
+    </div>
+
+    <section>
+      <h2 class="font-semibold mb-3">Deploy history</h2>
+      <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+        {(deploys ?? []).map((d) => (
+          <div class="flex items-center justify-between gap-4 px-5 py-3">
+            <div>
+              <p class="text-sm font-medium">{new Date(d.created_at).toLocaleString("en-NZ")}</p>
+              <p class="text-sm text-slate-500">{d.note}{d.url && <> · <a href={d.url} class="text-brand-700 hover:underline">{d.url}</a></>}</p>
+            </div>
+            <span class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", statusStyle[d.status]]}>{d.status}</span>
+          </div>
+        ))}
+        {(!deploys || deploys.length === 0) && <p class="px-5 py-6 text-slate-500 text-sm">No deploys yet.</p>}
+      </div>
+    </section>
+  </div>
+</AdminLayout>

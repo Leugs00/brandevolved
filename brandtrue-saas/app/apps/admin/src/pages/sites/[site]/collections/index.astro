@@ -1,0 +1,108 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const canEdit = canEditStructure(membership?.role);
+let error: string | null = null;
+
+const kindSchemas: Record<string, unknown[]> = {
+  portfolio: [
+    { name: "title", label: "Project title", type: "text", required: true },
+    { name: "image", label: "Image", type: "image" },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "link", label: "Link", type: "url" },
+  ],
+  product: [
+    { name: "title", label: "Product name", type: "text", required: true },
+    { name: "image", label: "Image", type: "image" },
+    { name: "price", label: "Price", type: "text" },
+    { name: "description", label: "Description", type: "textarea" },
+  ],
+  service: [
+    { name: "title", label: "Service", type: "text", required: true },
+    { name: "description", label: "Description", type: "textarea" },
+    { name: "price", label: "Price / from", type: "text" },
+  ],
+  testimonial: [
+    { name: "quote", label: "Quote", type: "textarea", required: true },
+    { name: "author", label: "Author", type: "text", required: true },
+    { name: "role", label: "Role / company", type: "text" },
+  ],
+  custom: [{ name: "title", label: "Title", type: "text", required: true }],
+};
+
+if (Astro.request.method === "POST" && canEdit) {
+  const form = await Astro.request.formData();
+  const name = String(form.get("name") ?? "").trim();
+  const slug = String(form.get("slug") ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  const kind = String(form.get("kind") ?? "custom") as keyof typeof kindSchemas;
+  if (name && slug) {
+    const { data: created, error: e } = await db
+      .from("collections")
+      .insert({
+        organization_id: site.organization_id,
+        site_id: site.id,
+        name,
+        slug,
+        kind: kind as never,
+        item_schema: (kindSchemas[kind] ?? kindSchemas.custom) as never,
+      })
+      .select("id")
+      .single();
+    if (e) error = e.message;
+    else return Astro.redirect(`/sites/${site.id}/collections/${created.id}`);
+  }
+}
+
+const { data: collections } = await db
+  .from("collections")
+  .select("id, name, slug, kind, collection_items(count)")
+  .eq("site_id", site.id)
+  .order("name");
+---
+
+<AdminLayout title={`Collections · ${site.name}`} site={site} active="collections">
+  <div class="p-8 max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight mb-1">Collections</h1>
+    <p class="text-sm text-slate-500 mb-6">Data tables for your site — portfolios, products, services, testimonials. Show one on a page with a “Collection” block.</p>
+
+    {canEdit && (
+      <form method="post" class="mb-6 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4">
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Name</span>
+          <input name="name" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-48" placeholder="Portfolio" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Slug</span>
+          <input name="slug" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-36" placeholder="portfolio" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Type</span>
+          <select name="kind" class="rounded-lg border border-slate-300 px-2.5 py-1.5">
+            {Object.keys(kindSchemas).map((k) => <option value={k}>{k}</option>)}
+          </select>
+        </label>
+        <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">New collection</button>
+        {error && <p class="text-sm text-red-600 w-full">{error}</p>}
+      </form>
+    )}
+
+    <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      {(collections ?? []).map((c) => (
+        <a href={`/sites/${site.id}/collections/${c.id}`} class="flex items-center justify-between gap-4 px-5 py-3 hover:bg-slate-50">
+          <div>
+            <p class="font-medium">{c.name}</p>
+            <p class="text-sm text-slate-500">slug: {c.slug} · {c.kind}</p>
+          </div>
+          <span class="text-sm text-slate-400">{(c.collection_items as unknown as { count: number }[])[0]?.count ?? 0} items</span>
+        </a>
+      ))}
+      {(!collections || collections.length === 0) && <p class="px-5 py-6 text-slate-500 text-sm">No collections yet.</p>}
+    </div>
+  </div>
+</AdminLayout>

@@ -1,0 +1,50 @@
+---
+import "../styles/global.css";
+
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const email = String(form.get("email") ?? "").trim();
+  const password = String(form.get("password") ?? "");
+  const { error: authError } = await Astro.locals.db.auth.signInWithPassword({ email, password });
+  if (!authError) {
+    const next = new URL(Astro.request.url).searchParams.get("next") ?? "/";
+    return Astro.redirect(next.startsWith("/") ? next : "/");
+  }
+  error = "Invalid email or password.";
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in · BrandEvolved</title>
+  </head>
+  <body>
+    <div class="min-h-screen grid place-items-center bg-brand-900 px-4">
+      <form method="post" class="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 space-y-5">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Brand<span class="text-brand-700">Evolved</span></h1>
+          <p class="text-sm text-slate-500 mt-1">Sign in to your workspace</p>
+        </div>
+        {error && <p class="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+        <label class="block">
+          <span class="text-sm font-medium">Email</span>
+          <input type="email" name="email" required autocomplete="email"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-brand-600" />
+        </label>
+        <label class="block">
+          <span class="text-sm font-medium">Password</span>
+          <input type="password" name="password" required autocomplete="current-password"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-brand-600" />
+        </label>
+        <button type="submit"
+          class="w-full bg-brand-700 hover:bg-brand-800 text-white font-semibold rounded-lg py-2.5">
+          Sign in
+        </button>
+      </form>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,153 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../lib/site.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const since = new Date(Date.now() - 29 * 86400_000);
+const sinceDay = since.toISOString().slice(0, 10);
+
+const [{ data: daily }, { count: newLeads }, { count: contactCount }, { data: recent }] = await Promise.all([
+  db.from("analytics_daily").select("day, pageviews, visitors").eq("site_id", site.id).gte("day", sinceDay).order("day"),
+  db.from("leads").select("id", { count: "exact", head: true }).eq("site_id", site.id).eq("status", "new"),
+  db.from("contacts").select("id", { count: "exact", head: true }).eq("site_id", site.id).eq("subscribed", true),
+  db
+    .from("form_submissions")
+    .select("id, created_at, data, forms(name)")
+    .eq("site_id", site.id)
+    .order("created_at", { ascending: false })
+    .limit(5),
+]);
+
+// continuous 30-day series (fill gaps with 0)
+const byDay = new Map((daily ?? []).map((d) => [d.day, d]));
+const days: { day: string; pageviews: number; visitors: number }[] = [];
+for (let i = 0; i < 30; i++) {
+  const d = new Date(since.getTime() + i * 86400_000).toISOString().slice(0, 10);
+  const row = byDay.get(d);
+  days.push({ day: d, pageviews: row?.pageviews ?? 0, visitors: row?.visitors ?? 0 });
+}
+const totalViews = days.reduce((a, d) => a + d.pageviews, 0);
+const totalVisitors = days.reduce((a, d) => a + d.visitors, 0);
+const max = Math.max(1, ...days.map((d) => d.pageviews));
+const maxIdx = days.findIndex((d) => d.pageviews === max);
+
+// chart geometry: 30 bars, 2px gaps, rounded data-ends (series #0d9488, validated)
+const W = 720;
+const H = 160;
+const PAD = 4;
+const gap = 2;
+const barW = (W - gap * (days.length - 1)) / days.length;
+const y = (v: number) => H - PAD - (v / max) * (H - PAD * 2);
+
+const fmtDay = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-NZ", { day: "numeric", month: "short" });
+
+const recentRows = (recent ?? []).map((s) => {
+  const d = (s.data ?? {}) as Record<string, string>;
+  return {
+    id: s.id,
+    who: d.name || d.email || "Submission",
+    what: d.message || d.email || "",
+    form: (s.forms as unknown as { name: string } | null)?.name ?? "",
+    when: new Date(s.created_at).toLocaleDateString("en-NZ"),
+  };
+});
+
+const tiles = [
+  { label: "Page views · 30d", value: totalViews },
+  { label: "Visitors · 30d", value: totalVisitors },
+  { label: "New enquiries", value: newLeads ?? 0, href: `/sites/${site.id}/leads` },
+  { label: "Subscribed contacts", value: contactCount ?? 0, href: `/sites/${site.id}/contacts` },
+];
+---
+
+<AdminLayout title={site.name} site={site} active="">
+  <div class="p-8 max-w-5xl space-y-8">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">{site.name}</h1>
+      <p class="text-sm text-slate-500 mt-1">Last 30 days at a glance</p>
+    </div>
+
+    <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      {tiles.map((t) => (
+        <a href={t.href ?? `/sites/${site.id}`} class="rounded-xl border border-slate-200 bg-white p-4 block hover:border-brand-600 transition">
+          <p class="text-3xl font-bold tabular-nums tracking-tight">{t.value}</p>
+          <p class="text-sm text-slate-500 mt-1">{t.label}</p>
+        </a>
+      ))}
+    </div>
+
+    <section class="rounded-xl border border-slate-200 bg-white p-5">
+      <h2 class="font-semibold">Daily page views</h2>
+      <svg viewBox={`0 0 ${W} ${H}`} class="mt-4 w-full" role="img" aria-label={`Daily page views, last 30 days, total ${totalViews}`}>
+        <line x1="0" y1={H - PAD} x2={W} y2={H - PAD} stroke="#e2e8f0" stroke-width="1" />
+        {days.map((d, i) => {
+          const x = i * (barW + gap);
+          const top = y(d.pageviews);
+          const h = Math.max(d.pageviews > 0 ? 2 : 0, H - PAD - top);
+          return (
+            <g class="bar">
+              <rect x={x} y={PAD} width={barW} height={H - PAD * 2} fill="transparent">
+                <title>{`${fmtDay(d.day)}: ${d.pageviews} views, ${d.visitors} visitors`}</title>
+              </rect>
+              {h > 0 && (
+                <rect x={x} y={top} width={barW} height={h} rx="4" ry="4" fill="#0d9488" class="mark">
+                  <title>{`${fmtDay(d.day)}: ${d.pageviews} views, ${d.visitors} visitors`}</title>
+                </rect>
+              )}
+              {i === maxIdx && max > 0 && (
+                <text x={x + barW / 2} y={Math.max(12, top - 6)} text-anchor="middle" font-size="11" fill="#475569">{max}</text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div class="flex justify-between text-xs text-slate-400 mt-1">
+        <span>{fmtDay(days[0]!.day)}</span>
+        <span>{fmtDay(days[days.length - 1]!.day)}</span>
+      </div>
+      <details class="mt-3">
+        <summary class="text-sm text-slate-500 cursor-pointer">View as table</summary>
+        <table class="mt-2 text-sm w-full max-w-md">
+          <thead><tr class="text-left text-slate-500"><th class="py-1 font-medium">Day</th><th class="font-medium">Views</th><th class="font-medium">Visitors</th></tr></thead>
+          <tbody>
+            {days.filter((d) => d.pageviews > 0).map((d) => (
+              <tr class="border-t border-slate-100"><td class="py-1">{fmtDay(d.day)}</td><td class="tabular-nums">{d.pageviews}</td><td class="tabular-nums">{d.visitors}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
+    </section>
+
+    <section class="rounded-xl border border-slate-200 bg-white p-5">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Recent form submissions</h2>
+        <a href={`/sites/${site.id}/forms`} class="text-sm text-brand-700 hover:underline">All forms →</a>
+      </div>
+      {recentRows.length === 0 ? (
+        <p class="text-sm text-slate-500 mt-3">Nothing yet.</p>
+      ) : (
+        <ul class="mt-3 divide-y divide-slate-100">
+          {recentRows.map((row) => (
+            <li class="py-2.5 flex items-baseline justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{row.who}</p>
+                <p class="text-sm text-slate-500 truncate">{row.what}</p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-xs text-slate-400">{row.form}</p>
+                <p class="text-xs text-slate-400">{row.when}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  </div>
+</AdminLayout>
+
+<style>
+  .bar:hover .mark { fill: #0f766e; }
+</style>

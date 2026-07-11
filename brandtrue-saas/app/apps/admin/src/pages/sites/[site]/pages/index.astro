@@ -1,0 +1,61 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const { data: pages } = await db
+  .from("pages")
+  .select("id, path, title, status, updated_at")
+  .eq("site_id", site.id)
+  .order("path");
+
+const canCreate = canEditStructure(membership?.role);
+---
+
+<AdminLayout title={`Pages · ${site.name}`} site={site} active="pages">
+  <div class="p-8 max-w-5xl">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold tracking-tight">Pages</h1>
+      {canCreate && (
+        <button id="new-page" class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">New page</button>
+      )}
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      {(pages ?? []).map((page) => (
+        <a href={`/sites/${site.id}/pages/${page.id}`} class="flex items-center justify-between gap-4 px-5 py-3 hover:bg-slate-50">
+          <div class="min-w-0">
+            <p class="font-medium truncate">{page.title}</p>
+            <p class="text-sm text-slate-500 truncate">{page.path}</p>
+          </div>
+          <span class:list={[
+            "rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0",
+            page.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600",
+          ]}>{page.status}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <script is:inline define:vars={{ siteId: site.id }}>
+    const btn = document.getElementById("new-page");
+    btn?.addEventListener("click", async () => {
+      const title = prompt("Page title?");
+      if (!title) return;
+      const path = prompt("Path? (e.g. /pricing)", "/" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+      if (!path) return;
+      const res = await fetch("/api/pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: siteId, title, path }),
+      });
+      const body = await res.json();
+      if (!res.ok) return alert(body.error || "Could not create page");
+      location.href = `/sites/${siteId}/pages/${body.id}`;
+    });
+  </script>
+</AdminLayout>
