@@ -12,6 +12,7 @@ const cf = process.env.DEPLOY_TARGET === "cloudflare";
 export default defineConfig({
   output: "server",
   adapter: cf ? cloudflare() : node({ mode: "standalone" }),
+  outDir: cf ? "./dist-cloudflare" : "./dist",
   server: { port: 4322 },
   // Astro's origin check misfires behind the bare-IP node server; CSRF is
   // covered by the SameSite=Lax Supabase auth cookies (cross-site POSTs

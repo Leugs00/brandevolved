@@ -82,7 +82,7 @@ execFileSync("pnpm", ["--filter", "site-engine", "build"], {
 console.log("Uploading…");
 const out = execFileSync(
   "pnpm",
-  ["--filter", "deploy", "exec", "wrangler", "pages", "deploy", `${root}/apps/site-engine/dist`, `--project-name=${project}`, "--commit-dirty=true"],
+  ["--filter", "deploy", "exec", "wrangler", "pages", "deploy", `${root}/apps/site-engine/dist`, `--project-name=${project}`, "--branch=main", "--commit-dirty=true"],
   { cwd: root, env: process.env, encoding: "utf8" },
 );
 console.log(out);
