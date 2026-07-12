@@ -1,5 +1,5 @@
 ---
-import type { RenderContext } from "../src/index.ts";
+import { filterItems, type RenderContext } from "../src/index.ts";
 
 interface Props {
   data: Record<string, any>;
@@ -9,13 +9,16 @@ interface Props {
 const { data, context } = Astro.props;
 const collection = context.collections[String(data.collection_slug ?? "")];
 const limit = Number(data.limit) > 0 ? Number(data.limit) : 12;
-const items = (collection?.items ?? []).slice(0, limit) as Record<string, any>[];
+const items = filterItems(collection?.items ?? [], data.filter_field, data.filter_value).slice(
+  0,
+  limit,
+) as Record<string, any>[];
 ---
 
 <section class="be-collection">
   {data.heading && <h2 data-field="heading">{data.heading}</h2>}
   {!collection && context.editable && (
-    <p class="be-collection__warn">No collection with slug “{data.collection_slug}” on this site.</p>
+    <p class="be-collection__warn">No database with slug “{data.collection_slug}” on this site — check the Databases page.</p>
   )}
   <div class:list={["be-collection__items", `be-collection__items--${data.layout === "list" ? "list" : "grid"}`]}>
     {items.map((item) => (

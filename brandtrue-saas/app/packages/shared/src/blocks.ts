@@ -12,14 +12,19 @@ export type FieldType =
   | "image" // { src, alt } editable via click-to-replace
   | "url"
   | "select"
+  | "checkboxes" // multi-select; options static or from another database
   | "number"
   | "list"; // repeatable group of sub-fields
 
 export interface FieldDef {
   type: FieldType;
   label: string;
-  /** for select */
+  /** explainer shown under the label in every editor */
+  help?: string;
+  /** for select / checkboxes */
   options?: string[];
+  /** for select / checkboxes: options are item titles from this database (collection slug) */
+  options_from?: string;
   /** for list: the shape of each item */
   item?: Record<string, FieldDef>;
   default?: unknown;
@@ -45,7 +50,7 @@ export const blockDefs: Record<string, BlockDef> = {
     kind: "text",
     label: "Rich text",
     description: "Free-form text content",
-    fields: { html: { type: "richtext", label: "Content" } },
+    fields: { html: { type: "richtext", label: "Content", help: "The text of this section. You can also edit it directly on the page preview." } },
     schema: z.object({ html: z.string().default("") }).passthrough(),
     defaults: { html: "<p>Write something…</p>" },
   },
@@ -54,12 +59,12 @@ export const blockDefs: Record<string, BlockDef> = {
     label: "Hero",
     description: "Large heading with optional image and button",
     fields: {
-      heading: { type: "text", label: "Heading" },
-      subheading: { type: "text", label: "Subheading" },
-      image: { type: "image", label: "Background image" },
-      cta_label: { type: "text", label: "Button label" },
-      cta_href: { type: "url", label: "Button link" },
-      align: { type: "select", label: "Alignment", options: ["left", "center"] },
+      heading: { type: "text", label: "Heading", help: "The big headline — the first thing visitors read." },
+      subheading: { type: "text", label: "Subheading", help: "One supporting sentence under the headline." },
+      image: { type: "image", label: "Background image", help: "Optional photo behind the headline; a dark overlay keeps text readable." },
+      cta_label: { type: "text", label: "Button label", help: "Text on the button, e.g. Book a free call. Leave empty for no button." },
+      cta_href: { type: "url", label: "Button link", help: "Where the button goes — a page path like /contact or a full https:// link." },
+      align: { type: "select", label: "Alignment", options: ["left", "center"], help: "How the text sits in the banner." },
     },
     schema: z
       .object({
@@ -78,8 +83,8 @@ export const blockDefs: Record<string, BlockDef> = {
     label: "Image",
     description: "A single image with optional caption",
     fields: {
-      image: { type: "image", label: "Image" },
-      caption: { type: "text", label: "Caption" },
+      image: { type: "image", label: "Image", help: "The picture to show. Upload replaces it everywhere this block appears." },
+      caption: { type: "text", label: "Caption", help: "Optional small text under the image." },
     },
     schema: z
       .object({ image, caption: z.string().default("") })
@@ -142,10 +147,10 @@ export const blockDefs: Record<string, BlockDef> = {
     label: "Call to action",
     description: "Banner with a button",
     fields: {
-      heading: { type: "text", label: "Heading" },
-      body: { type: "text", label: "Text" },
-      button_label: { type: "text", label: "Button label" },
-      button_href: { type: "url", label: "Button link" },
+      heading: { type: "text", label: "Heading", help: "The call-to-action headline, e.g. Ready to get started?" },
+      body: { type: "text", label: "Text", help: "Optional supporting sentence." },
+      button_label: { type: "text", label: "Button label", help: "Text on the button." },
+      button_href: { type: "url", label: "Button link", help: "Where the button goes — e.g. /contact." },
     },
     schema: z
       .object({
@@ -159,13 +164,15 @@ export const blockDefs: Record<string, BlockDef> = {
   },
   collection_list: {
     kind: "collection_list",
-    label: "Collection",
-    description: "Items from a collection (portfolio, products, services…)",
+    label: "Database items",
+    description: "Shows items from a database (portfolio, products, services…). Edit the items themselves in Databases.",
     fields: {
-      heading: { type: "text", label: "Heading" },
-      collection_slug: { type: "text", label: "Collection slug" },
-      layout: { type: "select", label: "Layout", options: ["grid", "list"] },
-      limit: { type: "number", label: "Max items" },
+      heading: { type: "text", label: "Heading", help: "Optional title shown above the items." },
+      collection_slug: { type: "text", label: "Database slug", help: "Which database to show — its slug is listed on the Databases page (e.g. portfolio)." },
+      layout: { type: "select", label: "Layout", options: ["grid", "list"], help: "Grid of cards or a vertical list." },
+      limit: { type: "number", label: "Max items", help: "Show at most this many items." },
+      filter_field: { type: "text", label: "Filter by field", help: "Optional: only show items where this field matches. E.g. services." },
+      filter_value: { type: "text", label: "Filter value", help: "The value the field must include. E.g. Brand Photography." },
     },
     schema: z
       .object({
@@ -173,17 +180,19 @@ export const blockDefs: Record<string, BlockDef> = {
         collection_slug: z.string().default(""),
         layout: z.enum(["grid", "list"]).default("grid"),
         limit: z.number().int().positive().max(100).default(12),
+        filter_field: z.string().default(""),
+        filter_value: z.string().default(""),
       })
       .passthrough(),
-    defaults: { heading: "", collection_slug: "", layout: "grid", limit: 12 },
+    defaults: { heading: "", collection_slug: "", layout: "grid", limit: 12, filter_field: "", filter_value: "" },
   },
   form_embed: {
     kind: "form_embed",
     label: "Form",
     description: "Embed a form (contact, subscribe…)",
     fields: {
-      heading: { type: "text", label: "Heading" },
-      form_slug: { type: "text", label: "Form slug" },
+      heading: { type: "text", label: "Heading", help: "Title shown above the form." },
+      form_slug: { type: "text", label: "Form slug", help: "Which form to show — set up forms and their fields on the Forms page." },
     },
     schema: z
       .object({ heading: z.string().default(""), form_slug: z.string().default("") })
@@ -218,20 +227,24 @@ export const blockDefs: Record<string, BlockDef> = {
   testimonial_strip: {
     kind: "testimonial_strip",
     label: "Testimonials",
-    description: "Quotes pulled from a testimonials collection",
+    description: "Quotes pulled from the Testimonials database. Add or edit testimonials in Databases → Testimonials.",
     fields: {
-      heading: { type: "text", label: "Heading" },
-      collection_slug: { type: "text", label: "Collection slug" },
-      limit: { type: "number", label: "Max items" },
+      heading: { type: "text", label: "Heading", help: "Optional title shown above the quotes." },
+      collection_slug: { type: "text", label: "Database slug", help: "Usually testimonials — the database the quotes come from." },
+      limit: { type: "number", label: "Max items", help: "Show at most this many testimonials." },
+      filter_field: { type: "text", label: "Filter by field", help: "Optional: only show testimonials where this field matches. E.g. services or industry." },
+      filter_value: { type: "text", label: "Filter value", help: "The value to match. E.g. Brand Photography — shows only clients who used that service." },
     },
     schema: z
       .object({
         heading: z.string().default(""),
         collection_slug: z.string().default("testimonials"),
         limit: z.number().int().positive().max(50).default(6),
+        filter_field: z.string().default(""),
+        filter_value: z.string().default(""),
       })
       .passthrough(),
-    defaults: { heading: "What clients say", collection_slug: "testimonials", limit: 6 },
+    defaults: { heading: "What clients say", collection_slug: "testimonials", limit: 6, filter_field: "", filter_value: "" },
   },
 };
 

@@ -21,7 +21,7 @@ export const siteNav: NavItem[] = [
   { label: "Contacts", href: (s) => `/sites/${s}/contacts`, match: "contacts" },
   { label: "Customers", href: (s) => `/sites/${s}/customers`, match: "customers" },
   { label: "Forms", href: (s) => `/sites/${s}/forms`, match: "forms" },
-  { label: "Collections", href: (s) => `/sites/${s}/collections`, match: "collections" },
+  { label: "Databases", href: (s) => `/sites/${s}/collections`, match: "collections" },
   {
     label: "Publish",
     href: (s) => `/sites/${s}/publish`,

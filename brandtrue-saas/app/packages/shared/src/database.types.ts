@@ -193,6 +193,7 @@ export type Database = {
           organization_id: string
           site_id: string
           slug: string
+          starred: boolean
           updated_at: string
         }
         Insert: {
@@ -204,6 +205,7 @@ export type Database = {
           organization_id: string
           site_id: string
           slug: string
+          starred?: boolean
           updated_at?: string
         }
         Update: {
@@ -215,6 +217,7 @@ export type Database = {
           organization_id?: string
           site_id?: string
           slug?: string
+          starred?: boolean
           updated_at?: string
         }
         Relationships: [

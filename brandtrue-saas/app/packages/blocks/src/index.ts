@@ -39,6 +39,22 @@ export interface RenderContext {
   editable?: boolean;
 }
 
+/** Filter items by a block's filter_field/filter_value (array includes, scalar equals). */
+export function filterItems(
+  items: Record<string, unknown>[],
+  field?: unknown,
+  value?: unknown,
+): Record<string, unknown>[] {
+  const f = String(field ?? "").trim();
+  const v = String(value ?? "").trim().toLowerCase();
+  if (!f || !v) return items;
+  return items.filter((item) => {
+    const cell = item[f];
+    if (Array.isArray(cell)) return cell.some((x) => String(x).toLowerCase() === v);
+    return String(cell ?? "").toLowerCase() === v;
+  });
+}
+
 export interface RenderBlock {
   id: string;
   kind: string;
