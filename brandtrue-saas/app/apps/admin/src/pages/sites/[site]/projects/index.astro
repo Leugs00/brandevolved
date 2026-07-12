@@ -1,0 +1,102 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { statusStyle } from "../../../../lib/content.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const url = new URL(Astro.request.url);
+const fStatus = url.searchParams.get("status") ?? "";
+const fClient = url.searchParams.get("client") ?? "";
+const fPortfolio = url.searchParams.get("portfolio") ?? "";
+const fCase = url.searchParams.get("case") ?? "";
+
+let q = db
+  .from("projects")
+  .select("id, title, status, show_in_portfolio, case_study_enabled, featured, launch_date, updated_at, showcase_clients(business_name), project_types(name)")
+  .eq("site_id", site.id)
+  .order("sort_order");
+if (fStatus) q = q.eq("status", fStatus);
+if (fClient) q = q.eq("showcase_client_id", fClient);
+if (fPortfolio) q = q.eq("show_in_portfolio", fPortfolio === "yes");
+if (fCase) q = q.eq("case_study_enabled", fCase === "yes");
+const [{ data: projects }, { data: clients }] = await Promise.all([
+  q,
+  db.from("showcase_clients").select("id, business_name").eq("site_id", site.id).order("business_name"),
+]);
+
+const sel = "rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm";
+---
+
+<AdminLayout title={`Projects · ${site.name}`} site={site} active="projects">
+  <div class="p-8 max-w-6xl">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">Projects</h1>
+        <p class="mt-1 text-sm text-slate-500">Your portfolio. Each project can appear in the portfolio and, if you choose, have a full case-study page.</p>
+      </div>
+      <a href={`/sites/${site.id}/projects/new`} class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add a project</a>
+    </div>
+
+    <form method="get" class="mt-4 flex flex-wrap gap-2">
+      <select name="status" class={sel} onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        {["draft", "published", "archived"].map((s) => <option value={s} selected={fStatus === s}>{s}</option>)}
+      </select>
+      <select name="client" class={sel} onchange="this.form.submit()">
+        <option value="">All clients</option>
+        {(clients ?? []).map((c) => <option value={c.id} selected={fClient === c.id}>{c.business_name}</option>)}
+      </select>
+      <select name="portfolio" class={sel} onchange="this.form.submit()">
+        <option value="">In portfolio?</option>
+        <option value="yes" selected={fPortfolio === "yes"}>In portfolio</option>
+        <option value="no" selected={fPortfolio === "no"}>Not in portfolio</option>
+      </select>
+      <select name="case" class={sel} onchange="this.form.submit()">
+        <option value="">Case study?</option>
+        <option value="yes" selected={fCase === "yes"}>Full case study</option>
+        <option value="no" selected={fCase === "no"}>Portfolio preview only</option>
+      </select>
+    </form>
+
+    <div class="mt-4 rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      {(projects ?? []).length === 0 ? (
+        <div class="px-5 py-12 text-center">
+          <p class="font-medium text-slate-700">No projects yet</p>
+          <p class="text-sm text-slate-500 mt-1">Add your first project to begin building your portfolio.</p>
+        </div>
+      ) : (
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-slate-100">
+              <th class="px-4 py-2.5 font-medium">Project</th>
+              <th class="px-4 py-2.5 font-medium">Client</th>
+              <th class="px-4 py-2.5 font-medium">Type</th>
+              <th class="px-4 py-2.5 font-medium">Portfolio</th>
+              <th class="px-4 py-2.5 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(projects ?? []).map((p: any) => (
+              <tr class="border-b border-slate-50 hover:bg-slate-50">
+                <td class="px-4 py-2.5">
+                  <a href={`/sites/${site.id}/projects/${p.id}`} class="font-medium text-brand-800 hover:underline">{p.title}</a>
+                  {p.featured && <span class="ml-1.5 text-amber-500" title="Featured">★</span>}
+                </td>
+                <td class="px-4 py-2.5 text-slate-600">{(p.showcase_clients as { business_name: string } | null)?.business_name ?? "—"}</td>
+                <td class="px-4 py-2.5 text-slate-600">{(p.project_types as { name: string } | null)?.name ?? "—"}</td>
+                <td class="px-4 py-2.5">
+                  {p.show_in_portfolio ? <span class="text-emerald-700">In portfolio</span> : <span class="text-slate-400">Hidden</span>}
+                  {p.case_study_enabled && <span class="ml-1 rounded-full bg-brand-100 text-brand-800 px-2 py-0.5 text-[11px]">case study</span>}
+                </td>
+                <td class="px-4 py-2.5"><span class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", statusStyle[p.status]]}>{p.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  </div>
+</AdminLayout>

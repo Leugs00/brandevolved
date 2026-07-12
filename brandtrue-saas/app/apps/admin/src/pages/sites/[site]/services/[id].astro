@@ -1,0 +1,263 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import Field from "../../../../components/Field.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { loadLookups, slugify } from "../../../../lib/content.ts";
+import { serviceSchema, AUDIENCE_OPTIONS, DELIVERY_FORMAT_OPTIONS, BUSINESS_STAGE_OPTIONS } from "@brandevolved/shared/content";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const isNew = Astro.params.id === "new";
+const lookups = await loadLookups(db, site.id);
+let error: string | null = null;
+let v: Record<string, any> = {
+  name: "", slug: "", service_category_id: "", parent_service_id: "", short_description: "", full_description: "",
+  ideal_for: "", audiences: [], delivery_formats: [], business_stages: [], deliverables: [], process: [],
+  starting_price: "", currency: "NZD", price_label: "", delivery_time: "", featured_image_url: "", icon_url: "",
+  cta_text: "", cta_url: "", seo_title: "", seo_description: "", featured: false, sort_order: 0, status: "draft",
+  published: false,
+};
+
+if (!isNew) {
+  const { data } = await db.from("services").select("*").eq("id", Astro.params.id!).eq("site_id", site.id).maybeSingle();
+  if (!data) return Astro.redirect(`/sites/${site.id}/services`);
+  v = data;
+}
+
+const lines = (val: unknown) => (Array.isArray(val) ? val : []).map((x) => (typeof x === "string" ? x : (x as any).title ?? "")).join("\n");
+const asLines = (s: string) => s.split("\n").map((x) => x.trim()).filter(Boolean);
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (form.get("action") === "delete" && !isNew) {
+    await db.from("services").delete().eq("id", Astro.params.id!);
+    return Astro.redirect(`/sites/${site.id}/services`);
+  }
+  const publish = form.get("action") === "publish";
+  const toDraft = form.get("action") === "draft";
+  const raw = {
+    name: String(form.get("name") ?? "").trim(),
+    slug: slugify(String(form.get("slug") ?? "") || String(form.get("name") ?? "")),
+    service_category_id: String(form.get("service_category_id") ?? "") || null,
+    parent_service_id: String(form.get("parent_service_id") ?? "") || null,
+    short_description: String(form.get("short_description") ?? "").trim() || null,
+    full_description: String(form.get("full_description") ?? "").trim() || null,
+    ideal_for: String(form.get("ideal_for") ?? "").trim() || null,
+    audiences: form.getAll("audiences").map(String),
+    delivery_formats: form.getAll("delivery_formats").map(String),
+    business_stages: form.getAll("business_stages").map(String),
+    deliverables: asLines(String(form.get("deliverables") ?? "")),
+    process: asLines(String(form.get("process_titles") ?? "")).map((title, i) => ({
+      title,
+      body: asLines(String(form.get("process_bodies") ?? ""))[i] ?? "",
+      sort_order: i,
+    })),
+    starting_price: form.get("starting_price") ? Number(form.get("starting_price")) : null,
+    currency: String(form.get("currency") ?? "").trim() || null,
+    price_label: String(form.get("price_label") ?? "").trim() || null,
+    delivery_time: String(form.get("delivery_time") ?? "").trim() || null,
+    featured_image_url: String(form.get("featured_image_url") ?? "").trim(),
+    icon_url: String(form.get("icon_url") ?? "").trim(),
+    cta_text: String(form.get("cta_text") ?? "").trim() || null,
+    cta_url: String(form.get("cta_url") ?? "").trim(),
+    seo_title: String(form.get("seo_title") ?? "").trim() || null,
+    seo_description: String(form.get("seo_description") ?? "").trim() || null,
+    featured: form.get("featured") === "on",
+    sort_order: Number(form.get("sort_order") ?? 0) || 0,
+    status: publish ? "published" : toDraft ? "draft" : String(form.get("status") ?? "draft"),
+  };
+  v = { ...v, ...raw };
+  const parsed = serviceSchema.safeParse(raw);
+  if (!parsed.success) {
+    error = parsed.error.issues[0]?.message ?? "Please check the form.";
+  } else {
+    const row = { ...parsed.data, slug: raw.slug };
+    if (isNew) {
+      const { data: created, error: e } = await db
+        .from("services")
+        .insert({ ...row, organization_id: site.organization_id, site_id: site.id } as never)
+        .select("id")
+        .single();
+      if (e) error = e.message;
+      else return Astro.redirect(`/sites/${site.id}/services/${created.id}`);
+    } else {
+      const { error: e } = await db.from("services").update(row as never).eq("id", Astro.params.id!);
+      if (e) error = e.message;
+      else return Astro.redirect(`/sites/${site.id}/services`);
+    }
+  }
+}
+
+const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-brand-600";
+const checkList = (name: string, opts: string[], selected: string[]) =>
+  opts.map((o) => ({ o, checked: (selected ?? []).includes(o) }));
+---
+
+<AdminLayout title={`${isNew ? "New service" : v.name} · ${site.name}`} site={site} active="services">
+  <div class="p-8 max-w-3xl">
+    <a href={`/sites/${site.id}/services`} class="text-sm text-slate-500 hover:text-slate-800">← Services</a>
+    <div class="flex items-center gap-3 mt-1">
+      <h1 class="font-serif text-3xl font-semibold tracking-tight">{isNew ? "Add a service" : v.name}</h1>
+      {!isNew && <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600">{v.status}</span>}
+    </div>
+    {error && <p class="mt-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+
+    <form method="post" class="mt-6 space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Basic information</h2>
+        <Field label="Service name" help="Use the name visitors will recognise, such as “Website Design” or “Brand Photography.”" required>
+          <input name="name" value={v.name} required placeholder="Website Design" class={input} />
+        </Field>
+        <Field label="Page address" help="This becomes part of the page link. Lowercase words separated by hyphens — created automatically from the name.">
+          <input name="slug" value={v.slug} placeholder="website-design" class={input} />
+        </Field>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Service category" help="Choose the main group this service belongs to." optional>
+            <select name="service_category_id" class={input}>
+              <option value="">—</option>
+              {lookups.serviceCategories.map((c) => <option value={c.id} selected={v.service_category_id === c.id}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Parent service" help="Only when this service sits underneath a larger one." optional>
+            <select name="parent_service_id" class={input}>
+              <option value="">—</option>
+              {lookups.services.filter((s) => s.id !== v.id).map((s) => <option value={s.id} selected={v.parent_service_id === s.id}>{s.name}</option>)}
+            </select>
+          </Field>
+        </div>
+        <Field label="Short introduction" help="One or two sentences that explain the service. May appear on service cards.">
+          <textarea name="short_description" rows="2" placeholder="A clear, thoughtful website designed to build trust and help the right clients take the next step." class={input}>{v.short_description ?? ""}</textarea>
+        </Field>
+        <Field label="Full service description" help="Explain what the service is, why it matters, and how it helps the client." optional>
+          <textarea name="full_description" rows="5" class={input}>{v.full_description ?? ""}</textarea>
+        </Field>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" checked={v.featured} /> Featured service — highlight it on the homepage.</label>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Who it is for</h2>
+        <Field label="Ideal for" help="Describe the type of client or situation this service suits best." optional>
+          <textarea name="ideal_for" rows="2" placeholder="Health and wellness practitioners who have outgrown a basic website." class={input}>{v.ideal_for ?? ""}</textarea>
+        </Field>
+        <Field label="Audience" help="Choose all the types of client this service is designed for." optional>
+          <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+            {checkList("audiences", AUDIENCE_OPTIONS, v.audiences).map((c) => (
+              <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="audiences" value={c.o} checked={c.checked} /> {c.o}</label>
+            ))}
+          </div>
+        </Field>
+        <Field label="Business stage" help="Choose the stages where this service is most useful." optional>
+          <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+            {checkList("business_stages", BUSINESS_STAGE_OPTIONS, v.business_stages).map((c) => (
+              <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="business_stages" value={c.o} checked={c.checked} /> {c.o}</label>
+            ))}
+          </div>
+        </Field>
+        <Field label="Delivery format" help="Choose how this service is delivered." optional>
+          <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+            {checkList("delivery_formats", DELIVERY_FORMAT_OPTIONS, v.delivery_formats).map((c) => (
+              <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="delivery_formats" value={c.o} checked={c.checked} /> {c.o}</label>
+            ))}
+          </div>
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">What is included</h2>
+        <Field label="Deliverables" help="Add each item the client receives — one per line. Keep each short and specific." optional>
+          <textarea name="deliverables" rows="4" placeholder={"Custom five-page website\nMobile-friendly design\nContact form"} class={input}>{lines(v.deliverables)}</textarea>
+        </Field>
+        <Field label="Process — step titles" help="One step title per line, in order (e.g. Discovery, Design, Build, Launch)." optional>
+          <textarea name="process_titles" rows="3" class={input}>{(v.process ?? []).map((p: any) => p.title).join("\n")}</textarea>
+        </Field>
+        <Field label="Process — step explanations" help="One explanation per line, matching the titles above line-for-line." optional>
+          <textarea name="process_bodies" rows="3" class={input}>{(v.process ?? []).map((p: any) => p.body).join("\n")}</textarea>
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Pricing and delivery</h2>
+        <div class="grid sm:grid-cols-3 gap-x-4">
+          <Field label="Starting price" help="Number only. Leave blank for custom pricing." optional>
+            <input name="starting_price" type="number" value={v.starting_price ?? ""} class={input} />
+          </Field>
+          <Field label="Currency" optional>
+            <input name="currency" value={v.currency ?? "NZD"} class={input} />
+          </Field>
+          <Field label="Delivery time" help="A simple estimate, e.g. “4 to 6 weeks.”" optional>
+            <input name="delivery_time" value={v.delivery_time ?? ""} class={input} />
+          </Field>
+        </div>
+        <Field label="Public price wording" help="The wording visitors see, e.g. “From $4,000 + GST” or “Custom quote.”" optional>
+          <input name="price_label" value={v.price_label ?? ""} class={input} />
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Images</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Featured image" help="Main image for service cards and the top of the page." optional>
+            <span class="flex items-center gap-2">
+              {v.featured_image_url && <img src={v.featured_image_url} class="h-10 w-14 object-cover rounded" alt="" />}
+              <input name="featured_image_url" value={v.featured_image_url ?? ""} class={input} />
+              <input type="file" accept="image/*" data-upload-into="featured_image_url" class="text-xs w-24" />
+            </span>
+          </Field>
+          <Field label="Icon" help="A simple icon to help visitors recognise the service." optional>
+            <span class="flex items-center gap-2">
+              {v.icon_url && <img src={v.icon_url} class="h-10 w-10 object-contain rounded" alt="" />}
+              <input name="icon_url" value={v.icon_url ?? ""} class={input} />
+              <input type="file" accept="image/*" data-upload-into="icon_url" class="text-xs w-24" />
+            </span>
+          </Field>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Call to action</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Button text" help="A clear action, e.g. “Book a discovery call.”" optional>
+            <input name="cta_text" value={v.cta_text ?? ""} class={input} />
+          </Field>
+          <Field label="Button link" help="Where the button takes the visitor, e.g. /contact." optional>
+            <input name="cta_url" value={v.cta_url ?? ""} class={input} />
+          </Field>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Search settings</h2>
+        <Field label="Search title" help="The page title that may appear in Google." optional hint="~50–60 characters">
+          <input name="seo_title" value={v.seo_title ?? ""} maxlength="70" class={input} oninput="this.nextElementSibling && (this.parentElement.parentElement.querySelector('[data-count]').textContent = this.value.length)" />
+        </Field>
+        <Field label="Search description" help="A clear summary that encourages the right person to visit." optional hint="~140–160 characters">
+          <textarea name="seo_description" rows="2" maxlength="180" class={input}>{v.seo_description ?? ""}</textarea>
+        </Field>
+      </section>
+
+      <div class="sticky bottom-0 -mx-8 px-8 py-3 bg-white/90 backdrop-blur border-t border-slate-200 flex items-center gap-3">
+        <input type="hidden" name="sort_order" value={v.sort_order ?? 0} />
+        <button name="action" value="save" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">Save as draft</button>
+        <button name="action" value="publish" class="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800">Publish</button>
+        {!isNew && v.status === "published" && <button name="action" value="draft" class="text-sm text-slate-500 hover:underline">Move back to draft</button>}
+        {!isNew && <button name="action" value="delete" formnovalidate onclick="return confirm('Delete this service?')" class="ml-auto text-sm text-red-500 hover:underline">Delete</button>}
+      </div>
+    </form>
+  </div>
+
+  <script is:inline define:vars={{ siteId: site.id }}>
+    document.querySelectorAll("input[type=file][data-upload-into]").forEach((f) => {
+      f.addEventListener("change", async () => {
+        const file = f.files && f.files[0];
+        if (!file) return;
+        const fd = new FormData(); fd.append("site_id", siteId); fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const out = await res.json();
+        if (!res.ok) return alert(out.error || "Upload failed");
+        f.closest("section").querySelector(`[name="${f.dataset.uploadInto}"]`).value = out.url;
+      });
+    });
+  </script>
+</AdminLayout>

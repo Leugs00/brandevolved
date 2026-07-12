@@ -1,0 +1,430 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import Field from "../../../../components/Field.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { loadLookups, slugify } from "../../../../lib/content.ts";
+import { projectSchema, projectResultSchema, projectPublishBlockers, METRIC_UNIT_OPTIONS } from "@brandevolved/shared/content";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const isNew = Astro.params.id === "new";
+const lookups = await loadLookups(db, site.id);
+
+let error: string | null = null;
+let blockers: string[] = [];
+let v: Record<string, any> = {
+  title: "", slug: "", showcase_client_id: "", industry_id: "", project_type_id: "",
+  project_summary: "", challenge: "", approach: "", solution: "", outcome_summary: "",
+  website_url: "", launch_date: "", business_stage: "", hero_image_url: "",
+  gallery: [], before_images: [], after_images: [],
+  featured: false, show_in_portfolio: true, case_study_enabled: false, sort_order: 0, status: "draft",
+};
+let selectedServices: string[] = [];
+let results: any[] = [];
+
+async function reloadRelations(id: string) {
+  const [{ data: ps }, { data: rs }] = await Promise.all([
+    db.from("project_services").select("service_id").eq("project_id", id).order("sort_order"),
+    db.from("project_results").select("*").eq("project_id", id).order("sort_order"),
+  ]);
+  selectedServices = (ps ?? []).map((r) => r.service_id);
+  results = rs ?? [];
+}
+
+if (!isNew) {
+  const { data } = await db.from("projects").select("*").eq("id", Astro.params.id!).eq("site_id", site.id).maybeSingle();
+  if (!data) return Astro.redirect(`/sites/${site.id}/projects`);
+  v = data;
+  await reloadRelations(data.id);
+}
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+
+  // ── result sub-actions (only on an existing project) ──
+  if (action.startsWith("result-")) {
+    const pid = Astro.params.id!;
+    if (action === "result-delete") {
+      await db.from("project_results").delete().eq("id", String(form.get("result_id")));
+    } else {
+      const rkind = String(form.get("result_kind") ?? "qualitative");
+      const raw = {
+        result_type_id: String(form.get("result_type_id") ?? "") || null,
+        title: String(form.get("title") ?? "").trim(),
+        description: String(form.get("description") ?? "").trim() || null,
+        result_kind: rkind,
+        metric_value: form.get("metric_value") ? Number(form.get("metric_value")) : null,
+        metric_unit: String(form.get("metric_unit") ?? "").trim() || null,
+        metric_name: String(form.get("metric_name") ?? "").trim() || null,
+        display_value: String(form.get("display_value") ?? "").trim() || null,
+        time_period: String(form.get("time_period") ?? "").trim() || null,
+        comparison_period: String(form.get("comparison_period") ?? "").trim() || null,
+        supporting_note: String(form.get("supporting_note") ?? "").trim() || null,
+        verified: form.get("verified") === "on",
+        featured: form.get("featured_result") === "on",
+        sort_order: Number(form.get("sort_order") ?? 0) || 0,
+      };
+      const parsed = projectResultSchema.safeParse(raw);
+      if (!parsed.success) error = parsed.error.issues[0]?.message ?? "Please check the result.";
+      else if (action === "result-update") {
+        await db.from("project_results").update(parsed.data as never).eq("id", String(form.get("result_id")));
+      } else {
+        await db.from("project_results").insert({ ...parsed.data, organization_id: site.organization_id, site_id: site.id, project_id: pid } as never);
+      }
+    }
+    if (!error) return Astro.redirect(`/sites/${site.id}/projects/${Astro.params.id}#results`);
+    await reloadRelations(Astro.params.id!);
+  } else if (action === "delete" && !isNew) {
+    await db.from("projects").delete().eq("id", Astro.params.id!);
+    return Astro.redirect(`/sites/${site.id}/projects`);
+  } else {
+    // ── main project save ──
+    const wantPublish = action === "publish";
+    const toDraft = action === "draft";
+    selectedServices = form.getAll("services").map(String);
+    const parseImages = (n: string) => {
+      try {
+        const a = JSON.parse(String(form.get(n) ?? "[]"));
+        return Array.isArray(a) ? a : [];
+      } catch {
+        return [];
+      }
+    };
+    const raw = {
+      title: String(form.get("title") ?? "").trim(),
+      slug: slugify(String(form.get("slug") ?? "") || String(form.get("title") ?? "")),
+      showcase_client_id: String(form.get("showcase_client_id") ?? ""),
+      industry_id: String(form.get("industry_id") ?? "") || null,
+      project_type_id: String(form.get("project_type_id") ?? "") || null,
+      project_summary: String(form.get("project_summary") ?? "").trim() || null,
+      challenge: String(form.get("challenge") ?? "").trim() || null,
+      approach: String(form.get("approach") ?? "").trim() || null,
+      solution: String(form.get("solution") ?? "").trim() || null,
+      outcome_summary: String(form.get("outcome_summary") ?? "").trim() || null,
+      website_url: String(form.get("website_url") ?? "").trim(),
+      launch_date: String(form.get("launch_date") ?? "") || null,
+      business_stage: String(form.get("business_stage") ?? "").trim() || null,
+      hero_image_url: String(form.get("hero_image_url") ?? "").trim(),
+      gallery: parseImages("gallery"),
+      before_images: parseImages("before_images"),
+      after_images: parseImages("after_images"),
+      featured: form.get("featured") === "on",
+      show_in_portfolio: form.get("show_in_portfolio") === "on",
+      case_study_enabled: form.get("case_study_enabled") === "on",
+      sort_order: Number(form.get("sort_order") ?? 0) || 0,
+      status: "draft" as string,
+    };
+    v = { ...v, ...raw };
+    const parsed = projectSchema.safeParse(raw);
+    if (!parsed.success) {
+      error = parsed.error.issues[0]?.message ?? "Please check the form.";
+    } else {
+      const client = lookups.clients.find((c) => c.id === raw.showcase_client_id) ?? null;
+      if (wantPublish) {
+        blockers = projectPublishBlockers(raw, client, selectedServices.length);
+        if (blockers.length === 0) raw.status = "published";
+      } else if (!toDraft) raw.status = "draft";
+
+      if (!wantPublish || blockers.length === 0) {
+        const row = { ...parsed.data, slug: raw.slug, status: raw.status, published_at: raw.status === "published" ? new Date().toISOString() : null };
+        let id = Astro.params.id!;
+        if (isNew) {
+          const { data: created, error: e } = await db
+            .from("projects").insert({ ...row, organization_id: site.organization_id, site_id: site.id } as never)
+            .select("id").single();
+          if (e) error = e.message; else id = created.id;
+        } else {
+          const { error: e } = await db.from("projects").update(row as never).eq("id", id);
+          if (e) error = e.message;
+        }
+        if (!error) {
+          await db.from("project_services").delete().eq("project_id", id);
+          if (selectedServices.length) {
+            await db.from("project_services").insert(
+              selectedServices.map((service_id, i) => ({
+                organization_id: site.organization_id, site_id: site.id, project_id: id, service_id, sort_order: i,
+              })) as never,
+            );
+          }
+          if (isNew) return Astro.redirect(`/sites/${site.id}/projects/${id}`);
+          else return Astro.redirect(`/sites/${site.id}/projects`);
+        }
+      }
+    }
+  }
+}
+
+const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-brand-600";
+const servicesByCat = lookups.serviceCategories.map((c) => ({
+  cat: c.name,
+  items: lookups.services.filter((s) => s.category_name === c.name),
+})).concat([{ cat: "Other", items: lookups.services.filter((s) => !s.category_name) }]).filter((g) => g.items.length);
+---
+
+<AdminLayout title={`${isNew ? "New project" : v.title} · ${site.name}`} site={site} active="projects">
+  <div class="p-8 max-w-3xl">
+    <a href={`/sites/${site.id}/projects`} class="text-sm text-slate-500 hover:text-slate-800">← Projects</a>
+    <div class="flex items-center gap-3 mt-1">
+      <h1 class="font-serif text-3xl font-semibold tracking-tight">{isNew ? "Add a project" : v.title}</h1>
+      {!isNew && <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600">{v.status}</span>}
+    </div>
+    <p class="mt-1 text-sm text-slate-500">Projects are your portfolio. Turn on “Show in portfolio” and “Full case study” to control how each one appears.</p>
+
+    {error && <p class="mt-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+    {blockers.length > 0 && (
+      <div class="mt-4 text-sm bg-amber-50 text-amber-800 rounded-lg px-4 py-3">
+        <p class="font-semibold">This project is not ready to publish.</p>
+        <ul class="mt-1 list-disc list-inside">{blockers.map((b) => <li>{b}</li>)}</ul>
+        <p class="mt-1">It has been saved as a draft.</p>
+      </div>
+    )}
+
+    <form method="post" class="mt-6 space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Project overview</h2>
+        <Field label="Project title" help="The name visitors should see in your portfolio." required>
+          <input name="title" value={v.title} required placeholder="Radiant Wellness Website and Brand Refresh" class={input} />
+        </Field>
+        <Field label="Page address" help="Part of the project page link. Suggested automatically from the title.">
+          <input name="slug" value={v.slug} placeholder="radiant-wellness-refresh" class={input} />
+        </Field>
+        <div class="grid sm:grid-cols-3 gap-x-4">
+          <Field label="Client" help="Add the client first if not listed." required>
+            <select name="showcase_client_id" required class={input}>
+              <option value="">Choose…</option>
+              {lookups.clients.map((c) => <option value={c.id} selected={v.showcase_client_id === c.id}>{c.business_name}</option>)}
+            </select>
+          </Field>
+          <Field label="Industry" optional>
+            <select name="industry_id" class={input}>
+              <option value="">—</option>
+              {lookups.industries.map((i) => <option value={i.id} selected={v.industry_id === i.id}>{i.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Project type" optional>
+            <select name="project_type_id" class={input}>
+              <option value="">—</option>
+              {lookups.projectTypes.map((p) => <option value={p.id} selected={v.project_type_id === p.id}>{p.name}</option>)}
+            </select>
+          </Field>
+        </div>
+        <Field label="Short introduction" help="A short overview for portfolio cards. What was created and who it helped.">
+          <textarea name="project_summary" rows="2" class={input}>{v.project_summary ?? ""}</textarea>
+        </Field>
+        <div class="grid sm:grid-cols-3 gap-x-4">
+          <Field label="Website address" help="The live project site, if visitors can view it." optional>
+            <input name="website_url" type="url" value={v.website_url ?? ""} class={input} />
+          </Field>
+          <Field label="Launch date" help="Approximate is fine." optional>
+            <input name="launch_date" type="date" value={v.launch_date ?? ""} class={input} />
+          </Field>
+          <Field label="Business stage" optional>
+            <input name="business_stage" value={v.business_stage ?? ""} class={input} />
+          </Field>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Portfolio display</h2>
+        <label class="flex items-start gap-2.5 mb-2">
+          <input type="checkbox" name="show_in_portfolio" checked={v.show_in_portfolio} class="mt-1" />
+          <span class="text-sm"><span class="font-medium">Show in portfolio</span><span class="block text-xs text-slate-500">Appear on the main portfolio page.</span></span>
+        </label>
+        <label class="flex items-start gap-2.5 mb-2">
+          <input type="checkbox" name="case_study_enabled" checked={v.case_study_enabled} class="mt-1" />
+          <span class="text-sm"><span class="font-medium">Full case study</span><span class="block text-xs text-slate-500">Give this project its own page with the challenge, solution, results and testimonials. A project can be in the portfolio without a full case study.</span></span>
+        </label>
+        <label class="flex items-start gap-2.5 mb-3">
+          <input type="checkbox" name="featured" checked={v.featured} class="mt-1" />
+          <span class="text-sm"><span class="font-medium">Featured project</span><span class="block text-xs text-slate-500">Highlight it on the homepage or at the top of the portfolio.</span></span>
+        </label>
+        <Field label="Display order" help="Lower numbers appear first. 0 if order doesn't matter." optional>
+          <input name="sort_order" type="number" value={v.sort_order ?? 0} class="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-1">Services</h2>
+        <p class="text-xs text-slate-500 mb-3">Choose every service included in this project. This connects it to service pages and filters.</p>
+        {servicesByCat.length === 0 ? (
+          <p class="text-xs text-amber-600">Add some services first.</p>
+        ) : servicesByCat.map((g) => (
+          <div class="mb-2">
+            <p class="text-[11px] uppercase tracking-wide text-slate-400">{g.cat}</p>
+            <div class="flex flex-wrap gap-x-4 gap-y-1">
+              {g.items.map((s) => (
+                <label class="flex items-center gap-1.5 text-sm"><input type="checkbox" name="services" value={s.id} checked={selectedServices.includes(s.id)} /> {s.name}</label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Project story</h2>
+        <Field label="The challenge" help="What wasn't working, what changed, or what the client needed help with." optional>
+          <textarea name="challenge" rows="3" class={input}>{v.challenge ?? ""}</textarea>
+        </Field>
+        <Field label="Our approach" help="How you planned the work and the important decisions you made." optional>
+          <textarea name="approach" rows="3" class={input}>{v.approach ?? ""}</textarea>
+        </Field>
+        <Field label="The solution" help="What you created and how it solved the original problem." optional>
+          <textarea name="solution" rows="3" class={input}>{v.solution ?? ""}</textarea>
+        </Field>
+        <Field label="Outcome summary" help="The overall difference the project made." optional>
+          <textarea name="outcome_summary" rows="2" class={input}>{v.outcome_summary ?? ""}</textarea>
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Images</h2>
+        <Field label="Main project image" help="The strongest image for portfolio cards and the top of the page.">
+          <span class="flex items-center gap-2">
+            {v.hero_image_url && <img src={v.hero_image_url} class="h-12 w-16 object-cover rounded" alt="" />}
+            <input name="hero_image_url" value={v.hero_image_url ?? ""} class={input} />
+            <input type="file" accept="image/*" data-upload-into="hero_image_url" class="text-xs w-24" />
+          </span>
+        </Field>
+        <div class="grid gap-4 mt-2">
+          <div data-imagefield="gallery"><p class="text-sm font-medium text-slate-700">Gallery</p><p class="text-xs text-slate-500 mb-1.5">Images showing the finished work. Add alt text for each.</p><div data-thumbs class="flex flex-wrap gap-2 mb-2"></div><input type="file" accept="image/*" data-add class="text-xs" /><input type="hidden" name="gallery" value={JSON.stringify(v.gallery ?? [])} /></div>
+          <div data-imagefield="before_images"><p class="text-sm font-medium text-slate-700">Before images</p><p class="text-xs text-slate-500 mb-1.5">The previous brand or website, if you have permission.</p><div data-thumbs class="flex flex-wrap gap-2 mb-2"></div><input type="file" accept="image/*" data-add class="text-xs" /><input type="hidden" name="before_images" value={JSON.stringify(v.before_images ?? [])} /></div>
+          <div data-imagefield="after_images"><p class="text-sm font-medium text-slate-700">After images</p><p class="text-xs text-slate-500 mb-1.5">Matching images that make the improvement clear.</p><div data-thumbs class="flex flex-wrap gap-2 mb-2"></div><input type="file" accept="image/*" data-add class="text-xs" /><input type="hidden" name="after_images" value={JSON.stringify(v.after_images ?? [])} /></div>
+        </div>
+      </section>
+
+      <div class="sticky bottom-0 -mx-8 px-8 py-3 bg-white/90 backdrop-blur border-t border-slate-200 flex items-center gap-3">
+        <button name="action" value="save" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">Save as draft</button>
+        <button name="action" value="publish" class="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800">Publish</button>
+        {!isNew && v.status === "published" && <button name="action" value="draft" class="text-sm text-slate-500 hover:underline">Move back to draft</button>}
+        {!isNew && <button name="action" value="delete" formnovalidate onclick="return confirm('Delete this project?')" class="ml-auto text-sm text-red-500 hover:underline">Delete</button>}
+      </div>
+    </form>
+
+    {!isNew && (
+      <section id="results" class="mt-8 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800">Results</h2>
+        <p class="text-xs text-slate-500 mb-4">Measurable numbers or descriptive outcomes. These appear on the case study.</p>
+
+        {results.map((r) => (
+          <form method="post" class="rounded-lg border border-slate-200 p-3 mb-3">
+            <input type="hidden" name="action" value="result-update" />
+            <input type="hidden" name="result_id" value={r.id} />
+            <div class="grid sm:grid-cols-2 gap-x-4">
+              <Field label="Result title" required>
+                <input name="title" value={r.title} required class={input} />
+              </Field>
+              <Field label="Result type" optional>
+                <select name="result_type_id" class={input}>
+                  <option value="">—</option>
+                  {lookups.resultTypes.map((rt) => <option value={rt.id} selected={r.result_type_id === rt.id}>{rt.name}</option>)}
+                </select>
+              </Field>
+            </div>
+            <Field label="Can this result be measured with a number?">
+              <select name="result_kind" class={input}>
+                <option value="quantitative" selected={r.result_kind === "quantitative"}>Yes, it has a number</option>
+                <option value="qualitative" selected={r.result_kind === "qualitative"}>No, it is a descriptive result</option>
+              </select>
+            </Field>
+            <div class="grid sm:grid-cols-3 gap-x-4">
+              <Field label="Number" optional><input name="metric_value" type="number" value={r.metric_value ?? ""} class={input} /></Field>
+              <Field label="Unit" optional>
+                <select name="metric_unit" class={input}><option value="">—</option>{METRIC_UNIT_OPTIONS.map((u) => <option value={u} selected={r.metric_unit === u}>{u}</option>)}</select>
+              </Field>
+              <Field label="Public wording" help="Exactly what visitors see." optional><input name="display_value" value={r.display_value ?? ""} placeholder="42% more enquiries" class={input} /></Field>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-x-4">
+              <Field label="Time period" optional><input name="time_period" value={r.time_period ?? ""} class={input} /></Field>
+              <Field label="Compared with" optional><input name="comparison_period" value={r.comparison_period ?? ""} class={input} /></Field>
+            </div>
+            <Field label="Description" optional><textarea name="description" rows="2" class={input}>{r.description ?? ""}</textarea></Field>
+            <div class="flex items-center gap-4 text-sm">
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="verified" checked={r.verified} /> Verified</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="featured_result" checked={r.featured} /> Featured</label>
+              <button class="rounded-lg bg-brand-700 px-3 py-1.5 font-semibold text-white hover:bg-brand-800">Save</button>
+              <button name="action" value="result-delete" formnovalidate onclick="return confirm('Delete this result?')" class="text-red-500 hover:underline">Delete</button>
+            </div>
+          </form>
+        ))}
+
+        <form method="post" class="rounded-lg border-2 border-dashed border-slate-300 p-3">
+          <input type="hidden" name="action" value="result-add" />
+          <p class="text-sm font-semibold text-slate-600 mb-2">Add a result</p>
+          <div class="grid sm:grid-cols-2 gap-x-4">
+            <Field label="Result title" help="Write the result as a clear benefit, e.g. “42% more enquiries.”" required>
+              <input name="title" required class={input} />
+            </Field>
+            <Field label="Can this be measured with a number?">
+              <select name="result_kind" class={input}>
+                <option value="qualitative">No, it is a descriptive result</option>
+                <option value="quantitative">Yes, it has a number</option>
+              </select>
+            </Field>
+          </div>
+          <div class="grid sm:grid-cols-3 gap-x-4">
+            <Field label="Number" optional><input name="metric_value" type="number" class={input} /></Field>
+            <Field label="Unit" optional><select name="metric_unit" class={input}><option value="">—</option>{METRIC_UNIT_OPTIONS.map((u) => <option value={u}>{u}</option>)}</select></Field>
+            <Field label="Public wording" optional><input name="display_value" placeholder="42% more enquiries" class={input} /></Field>
+          </div>
+          <Field label="Description" help="A short explanation of why this result matters." optional><textarea name="description" rows="2" class={input}></textarea></Field>
+          <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add result</button>
+        </form>
+      </section>
+    )}
+  </div>
+
+  <script is:inline define:vars={{ siteId: site.id }}>
+    async function upload(file) {
+      const fd = new FormData(); fd.append("site_id", siteId); fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const out = await res.json();
+      if (!res.ok) { alert(out.error || "Upload failed"); return null; }
+      return out.url;
+    }
+    // single-image url fields
+    document.querySelectorAll("input[type=file][data-upload-into]").forEach((f) => {
+      f.addEventListener("change", async () => {
+        const file = f.files && f.files[0]; if (!file) return;
+        const url = await upload(file); if (!url) return;
+        f.closest("section").querySelector(`[name="${f.dataset.uploadInto}"]`).value = url;
+      });
+    });
+    // multi-image fields (gallery/before/after)
+    document.querySelectorAll("[data-imagefield]").forEach((box) => {
+      const hidden = box.querySelector("input[type=hidden]");
+      const thumbs = box.querySelector("[data-thumbs]");
+      let items = [];
+      try { items = JSON.parse(hidden.value || "[]"); } catch {}
+      const sync = () => { hidden.value = JSON.stringify(items); render(); };
+      function render() {
+        thumbs.innerHTML = "";
+        items.forEach((it, i) => {
+          const cell = document.createElement("div");
+          cell.className = "w-24";
+          cell.innerHTML = `<img src="${it.src}" class="w-24 h-16 object-cover rounded border border-slate-200" alt=""/>`;
+          const alt = document.createElement("input");
+          alt.className = "mt-1 w-full rounded border border-slate-300 px-1.5 py-1 text-[11px]";
+          alt.placeholder = "Alt text"; alt.value = it.alt || "";
+          alt.oninput = () => { items[i].alt = alt.value; hidden.value = JSON.stringify(items); };
+          cell.appendChild(alt);
+          const bar = document.createElement("div"); bar.className = "flex justify-between mt-0.5 text-[11px]";
+          const rm = document.createElement("button"); rm.type = "button"; rm.textContent = "Remove"; rm.className = "text-red-500";
+          rm.onclick = () => { items.splice(i, 1); sync(); };
+          const up = document.createElement("button"); up.type = "button"; up.textContent = "←"; up.className = "text-slate-500";
+          up.onclick = () => { if (i > 0) { [items[i-1], items[i]] = [items[i], items[i-1]]; sync(); } };
+          bar.appendChild(up); bar.appendChild(rm); cell.appendChild(bar);
+          thumbs.appendChild(cell);
+        });
+      }
+      box.querySelector("[data-add]").addEventListener("change", async (e) => {
+        const file = e.target.files && e.target.files[0]; if (!file) return;
+        const url = await upload(file); e.target.value = "";
+        if (url) { items.push({ src: url, alt: "", caption: "" }); sync(); }
+      });
+      render();
+    });
+  </script>
+</AdminLayout>

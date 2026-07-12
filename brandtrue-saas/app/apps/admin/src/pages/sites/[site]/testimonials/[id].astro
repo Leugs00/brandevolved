@@ -1,0 +1,249 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import Field from "../../../../components/Field.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { loadLookups } from "../../../../lib/content.ts";
+import { testimonialSchema, testimonialPublishBlockers } from "@brandevolved/shared/content";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const isNew = Astro.params.id === "new";
+const lookups = await loadLookups(db, site.id);
+const { data: projects } = await db.from("projects").select("id, title").eq("site_id", site.id).order("title");
+
+let error: string | null = null;
+let blockers: string[] = [];
+let v: Record<string, any> = {
+  quote: "", short_quote: "", showcase_client_id: "", project_id: "", testimonial_type_id: "", rating: "",
+  testimonial_date: "", client_name_override: "", client_role_override: "", business_name_override: "",
+  source_name: "", source_url: "", permission_confirmed: false, video_url: "", audio_url: "",
+  client_photo_override_url: "", business_logo_override_url: "", featured: false, sort_order: 0, status: "draft",
+};
+let selectedServices: string[] = [];
+
+if (!isNew) {
+  const { data } = await db.from("testimonials").select("*").eq("id", Astro.params.id!).eq("site_id", site.id).maybeSingle();
+  if (!data) return Astro.redirect(`/sites/${site.id}/testimonials`);
+  v = data;
+  const { data: ts } = await db.from("testimonial_services").select("service_id").eq("testimonial_id", data.id);
+  selectedServices = (ts ?? []).map((r) => r.service_id);
+}
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (form.get("action") === "delete" && !isNew) {
+    await db.from("testimonials").delete().eq("id", Astro.params.id!);
+    return Astro.redirect(`/sites/${site.id}/testimonials`);
+  }
+  const wantPublish = form.get("action") === "publish";
+  const toDraft = form.get("action") === "draft";
+  selectedServices = form.getAll("services").map(String);
+  const raw = {
+    quote: String(form.get("quote") ?? "").trim(),
+    short_quote: String(form.get("short_quote") ?? "").trim() || null,
+    showcase_client_id: String(form.get("showcase_client_id") ?? ""),
+    project_id: String(form.get("project_id") ?? "") || null,
+    testimonial_type_id: String(form.get("testimonial_type_id") ?? "") || null,
+    rating: form.get("rating") ? Number(form.get("rating")) : null,
+    testimonial_date: String(form.get("testimonial_date") ?? "") || null,
+    client_name_override: String(form.get("client_name_override") ?? "").trim() || null,
+    client_role_override: String(form.get("client_role_override") ?? "").trim() || null,
+    business_name_override: String(form.get("business_name_override") ?? "").trim() || null,
+    source_name: String(form.get("source_name") ?? "").trim() || null,
+    source_url: String(form.get("source_url") ?? "").trim(),
+    video_url: String(form.get("video_url") ?? "").trim(),
+    audio_url: String(form.get("audio_url") ?? "").trim(),
+    client_photo_override_url: String(form.get("client_photo_override_url") ?? "").trim(),
+    business_logo_override_url: String(form.get("business_logo_override_url") ?? "").trim(),
+    permission_confirmed: form.get("permission_confirmed") === "on",
+    featured: form.get("featured") === "on",
+    sort_order: Number(form.get("sort_order") ?? 0) || 0,
+    status: "draft" as string,
+  };
+  v = { ...v, ...raw };
+  const parsed = testimonialSchema.safeParse(raw);
+  if (!parsed.success) {
+    error = parsed.error.issues[0]?.message ?? "Please check the form.";
+  } else {
+    const client = lookups.clients.find((c) => c.id === raw.showcase_client_id) ?? null;
+    if (wantPublish) {
+      blockers = testimonialPublishBlockers(raw, client);
+      if (blockers.length === 0) raw.status = "published";
+    } else if (!toDraft) {
+      raw.status = "draft";
+    }
+    if (!wantPublish || blockers.length === 0) {
+      const row = { ...parsed.data, status: raw.status, published_at: raw.status === "published" ? new Date().toISOString() : null };
+      let id = Astro.params.id!;
+      if (isNew) {
+        const { data: created, error: e } = await db
+          .from("testimonials")
+          .insert({ ...row, organization_id: site.organization_id, site_id: site.id } as never)
+          .select("id")
+          .single();
+        if (e) error = e.message;
+        else id = created.id;
+      } else {
+        const { error: e } = await db.from("testimonials").update(row as never).eq("id", id);
+        if (e) error = e.message;
+      }
+      if (!error) {
+        // reset service links
+        await db.from("testimonial_services").delete().eq("testimonial_id", id);
+        if (selectedServices.length) {
+          await db.from("testimonial_services").insert(
+            selectedServices.map((service_id, i) => ({
+              organization_id: site.organization_id,
+              site_id: site.id,
+              testimonial_id: id,
+              service_id,
+              sort_order: i,
+            })) as never,
+          );
+        }
+        if (isNew) return Astro.redirect(`/sites/${site.id}/testimonials/${id}`);
+        else return Astro.redirect(`/sites/${site.id}/testimonials`);
+      }
+    }
+  }
+}
+
+const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-brand-600";
+---
+
+<AdminLayout title={`${isNew ? "New testimonial" : "Testimonial"} · ${site.name}`} site={site} active="testimonials">
+  <div class="p-8 max-w-3xl">
+    <a href={`/sites/${site.id}/testimonials`} class="text-sm text-slate-500 hover:text-slate-800">← Testimonials</a>
+    <h1 class="mt-1 font-serif text-3xl font-semibold tracking-tight">{isNew ? "Add a testimonial" : "Edit testimonial"}</h1>
+
+    {error && <p class="mt-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+    {blockers.length > 0 && (
+      <div class="mt-4 text-sm bg-amber-50 text-amber-800 rounded-lg px-4 py-3">
+        <p class="font-semibold">This testimonial is not ready to publish.</p>
+        <ul class="mt-1 list-disc list-inside">{blockers.map((b) => <li>{b}</li>)}</ul>
+        <p class="mt-1">It has been saved as a draft.</p>
+      </div>
+    )}
+    {!v.permission_confirmed && (
+      <p class="mt-4 text-sm bg-slate-100 text-slate-700 rounded-lg px-3 py-2">
+        This testimonial can be saved as a draft, but it cannot be published until permission is confirmed.
+      </p>
+    )}
+
+    <form method="post" class="mt-6 space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Testimonial</h2>
+        <Field label="Full testimonial" help="Paste the client's full words here. Keep their meaning and voice intact." required>
+          <textarea name="quote" rows="4" required class={input}>{v.quote}</textarea>
+        </Field>
+        <Field label="Short testimonial" help="The strongest one or two sentences for cards and shorter sections." optional>
+          <textarea name="short_quote" rows="2" class={input}>{v.short_quote ?? ""}</textarea>
+        </Field>
+        <div class="grid sm:grid-cols-3 gap-x-4">
+          <Field label="Testimonial type" help="Where it came from." optional>
+            <select name="testimonial_type_id" class={input}>
+              <option value="">—</option>
+              {lookups.testimonialTypes.map((t) => <option value={t.id} selected={v.testimonial_type_id === t.id}>{t.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Rating" help="Only when the client gave one. 1 to 5." optional>
+            <input name="rating" type="number" min="1" max="5" step="1" value={v.rating ?? ""} class={input} />
+          </Field>
+          <Field label="Testimonial date" help="An approximate date is fine." optional>
+            <input name="testimonial_date" type="date" value={v.testimonial_date ?? ""} class={input} />
+          </Field>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Client and project</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Client" help="Choose the client who provided this testimonial." required>
+            <select name="showcase_client_id" required class={input}>
+              <option value="">Choose a client…</option>
+              {lookups.clients.map((c) => <option value={c.id} selected={v.showcase_client_id === c.id}>{c.business_name}</option>)}
+            </select>
+          </Field>
+          <Field label="Related project" help="The project the client is talking about. Leave blank for general praise." optional>
+            <select name="project_id" class={input}>
+              <option value="">—</option>
+              {(projects ?? []).map((p) => <option value={p.id} selected={v.project_id === p.id}>{p.title}</option>)}
+            </select>
+          </Field>
+        </div>
+        <details class="mt-2">
+          <summary class="text-sm text-slate-500 cursor-pointer">Use different public details</summary>
+          <div class="grid sm:grid-cols-3 gap-x-4 mt-3">
+            <Field label="Public name" help="Only if credited differently from the client record." optional>
+              <input name="client_name_override" value={v.client_name_override ?? ""} class={input} />
+            </Field>
+            <Field label="Public role" optional>
+              <input name="client_role_override" value={v.client_role_override ?? ""} class={input} />
+            </Field>
+            <Field label="Business name" optional>
+              <input name="business_name_override" value={v.business_name_override ?? ""} class={input} />
+            </Field>
+          </div>
+        </details>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-1">Services</h2>
+        <p class="text-xs text-slate-500 mb-3">Choose the services the client is praising. This helps the testimonial appear on the right service pages.</p>
+        {lookups.services.length === 0 ? (
+          <p class="text-xs text-amber-600">Add some services first.</p>
+        ) : (
+          <div class="flex flex-wrap gap-x-4 gap-y-1.5">
+            {lookups.services.map((s) => (
+              <label class="flex items-center gap-1.5 text-sm">
+                <input type="checkbox" name="services" value={s.id} checked={selectedServices.includes(s.id)} /> {s.name}
+              </label>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Source and permission</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Source name" help="Where it came from, e.g. Email, Google, Client interview." optional>
+            <input name="source_name" value={v.source_name ?? ""} class={input} />
+          </Field>
+          <Field label="Source link" help="A public link to the original review, if any." optional>
+            <input name="source_url" type="url" value={v.source_url ?? ""} class={input} />
+          </Field>
+        </div>
+        <label class="flex items-start gap-2.5">
+          <input type="checkbox" name="permission_confirmed" checked={v.permission_confirmed} class="mt-1" />
+          <span class="text-sm">
+            <span class="font-medium">Permission confirmed</span>
+            <span class="block text-xs text-slate-500">Turn this on only when the client has agreed this testimonial may be published.</span>
+          </span>
+        </label>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Images or video</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Video address" help="Public link to a video testimonial." optional>
+            <input name="video_url" type="url" value={v.video_url ?? ""} class={input} />
+          </Field>
+          <Field label="Audio address" help="Public link to an audio testimonial." optional>
+            <input name="audio_url" type="url" value={v.audio_url ?? ""} class={input} />
+          </Field>
+        </div>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="featured" checked={v.featured} /> Featured testimonial</label>
+      </section>
+
+      <div class="sticky bottom-0 -mx-8 px-8 py-3 bg-white/90 backdrop-blur border-t border-slate-200 flex items-center gap-3">
+        <input type="hidden" name="sort_order" value={v.sort_order ?? 0} />
+        <button name="action" value="save" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">Save as draft</button>
+        <button name="action" value="publish" class="rounded-lg bg-brand-700 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-800">Publish</button>
+        {!isNew && v.status === "published" && <button name="action" value="draft" class="text-sm text-slate-500 hover:underline">Move back to draft</button>}
+        {!isNew && <button name="action" value="delete" formnovalidate onclick="return confirm('Delete this testimonial?')" class="ml-auto text-sm text-red-500 hover:underline">Delete</button>}
+      </div>
+    </form>
+  </div>
+</AdminLayout>
