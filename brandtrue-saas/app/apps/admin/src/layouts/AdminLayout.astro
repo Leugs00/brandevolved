@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { visibleNav, isAgency } from "../lib/nav.ts";
+import { groupedNav, isAgency } from "../lib/nav.ts";
 
 interface Props {
   title: string;
@@ -12,7 +12,7 @@ interface Props {
 const { title, site, active = "" } = Astro.props;
 const { user, membership, db } = Astro.locals;
 const role = membership?.role;
-const nav = site ? visibleNav(role) : [];
+const navGroups = site ? groupedNav(role) : [];
 
 // starred databases get quick links in the sidebar
 const { data: starredDbs } = site
@@ -49,25 +49,30 @@ const roleLabel: Record<string, string> = {
             <p class="text-sm font-medium truncate">{site.name}</p>
           </div>
         )}
-        <nav class="flex-1 py-3">
+        <nav class="flex-1 py-3 overflow-y-auto">
           {site ? (
-            nav.map((item) => {
-              const href = item.href(site.id);
-              const isActive = active === item.match;
-              return (
-                <a
-                  href={href}
-                  class:list={[
-                    "block px-5 py-2 text-sm border-l-2",
-                    isActive
-                      ? "bg-white/10 font-semibold border-(--brand-accent)"
-                      : "border-transparent text-white/75 hover:bg-white/10 hover:text-white",
-                  ]}
-                >
-                  {item.label}
-                </a>
-              );
-            })
+            navGroups.map((grp) => (
+              <div class={grp.group ? "mt-3" : ""}>
+                {grp.group && <p class="px-5 pb-1 text-[11px] uppercase tracking-[0.14em] text-white/40">{grp.group}</p>}
+                {grp.items.map((item) => {
+                  const href = item.href(site.id);
+                  const isActive = active === item.match;
+                  return (
+                    <a
+                      href={href}
+                      class:list={[
+                        "block px-5 py-2 text-sm border-l-2",
+                        isActive
+                          ? "bg-white/10 font-semibold border-(--brand-accent)"
+                          : "border-transparent text-white/75 hover:bg-white/10 hover:text-white",
+                      ]}
+                    >
+                      {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+            ))
           ) : (
             <a href="/" class="block px-5 py-2 text-sm bg-white/10 font-semibold border-l-2 border-(--brand-accent)">Sites</a>
           )}

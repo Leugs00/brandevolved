@@ -1,0 +1,91 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { statusStyle } from "../../../../lib/content.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const url = new URL(Astro.request.url);
+const fStatus = url.searchParams.get("status") ?? "";
+const fPerm = url.searchParams.get("permission") ?? "";
+
+let q = db
+  .from("showcase_clients")
+  .select("id, business_name, name, permission_to_publish, featured, status, updated_at, industries(name)")
+  .eq("site_id", site.id)
+  .order("business_name");
+if (fStatus) q = q.eq("status", fStatus);
+if (fPerm) q = q.eq("permission_to_publish", fPerm === "yes");
+const { data: clients } = await q;
+
+const selCls = "rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm";
+---
+
+<AdminLayout title={`Clients · ${site.name}`} site={site} active="clients">
+  <div class="p-8 max-w-5xl">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">Clients</h1>
+        <p class="mt-1 text-sm text-slate-500">The businesses behind your projects and testimonials.</p>
+      </div>
+      <a href={`/sites/${site.id}/clients/new`} class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add a client</a>
+    </div>
+
+    <p class="mt-4 text-xs bg-amber-50 text-amber-800 rounded-lg px-3 py-2">
+      Confidential clients and their projects will never appear on the public website.
+    </p>
+
+    <form method="get" class="mt-4 flex flex-wrap gap-2">
+      <select name="status" class={selCls} onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        {["active", "past", "confidential", "archived"].map((s) => <option value={s} selected={fStatus === s}>{s}</option>)}
+      </select>
+      <select name="permission" class={selCls} onchange="this.form.submit()">
+        <option value="">Any permission</option>
+        <option value="yes" selected={fPerm === "yes"}>Permission given</option>
+        <option value="no" selected={fPerm === "no"}>No permission yet</option>
+      </select>
+    </form>
+
+    <div class="mt-4 rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      {(clients ?? []).length === 0 ? (
+        <div class="px-5 py-12 text-center">
+          <p class="font-medium text-slate-700">No clients yet</p>
+          <p class="text-sm text-slate-500 mt-1">Add your first client to start building projects and testimonials.</p>
+        </div>
+      ) : (
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-slate-100">
+              <th class="px-4 py-2.5 font-medium">Business</th>
+              <th class="px-4 py-2.5 font-medium">Client</th>
+              <th class="px-4 py-2.5 font-medium">Industry</th>
+              <th class="px-4 py-2.5 font-medium">Permission</th>
+              <th class="px-4 py-2.5 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(clients ?? []).map((c: any) => (
+              <tr class="border-b border-slate-50 hover:bg-slate-50">
+                <td class="px-4 py-2.5">
+                  <a href={`/sites/${site.id}/clients/${c.id}`} class="font-medium text-brand-800 hover:underline">{c.business_name}</a>
+                  {c.featured && <span class="ml-1.5 text-amber-500" title="Featured">★</span>}
+                </td>
+                <td class="px-4 py-2.5 text-slate-600">{c.name ?? "—"}</td>
+                <td class="px-4 py-2.5 text-slate-600">{(c.industries as { name: string } | null)?.name ?? "—"}</td>
+                <td class="px-4 py-2.5">
+                  {c.permission_to_publish
+                    ? <span class="text-emerald-700">✓ Given</span>
+                    : <span class="text-slate-400">Not yet</span>}
+                </td>
+                <td class="px-4 py-2.5"><span class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", statusStyle[c.status]]}>{c.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  </div>
+</AdminLayout>
