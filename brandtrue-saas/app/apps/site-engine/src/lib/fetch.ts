@@ -1,5 +1,43 @@
 import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
-import type { RenderBlock, RenderCollection, RenderContext, RenderForm } from "@brandevolved/blocks";
+import type { RenderBlock, RenderCollection, RenderContext, RenderForm, RenderProject } from "@brandevolved/blocks";
+
+/** Loads published projects (from public_* views) as RenderProject[]. */
+export async function fetchProjects(db: any, siteId: string): Promise<RenderProject[]> {
+  const [{ data: projects }, { data: svc }, { data: res }] = await Promise.all([
+    db.from("public_projects").select("*").eq("site_id", siteId).order("sort_order"),
+    db.from("public_project_services").select("project_id, service_slug"),
+    db.from("public_project_results").select("project_id, result_type_slug"),
+  ]);
+  const svcByProject = new Map<string, string[]>();
+  for (const s of svc ?? []) {
+    const arr = svcByProject.get(s.project_id) ?? [];
+    if (s.service_slug) arr.push(s.service_slug);
+    svcByProject.set(s.project_id, arr);
+  }
+  const resByProject = new Map<string, string[]>();
+  for (const r of res ?? []) {
+    const arr = resByProject.get(r.project_id) ?? [];
+    if (r.result_type_slug) arr.push(r.result_type_slug);
+    resByProject.set(r.project_id, arr);
+  }
+  return (projects ?? []).map((p: any) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    project_summary: p.project_summary,
+    hero_image_url: p.hero_image_url,
+    featured: p.featured,
+    show_in_portfolio: p.show_in_portfolio,
+    case_study_enabled: p.case_study_enabled,
+    business_name: p.business_name,
+    industry_slug: p.industry_slug,
+    industry_name: p.industry_name,
+    project_type_slug: p.project_type_slug,
+    project_type_name: p.project_type_name,
+    service_slugs: svcByProject.get(p.id) ?? [],
+    result_type_slugs: resByProject.get(p.id) ?? [],
+  }));
+}
 
 export interface SitePayload {
   site: {
@@ -61,6 +99,8 @@ export async function fetchSite(): Promise<SitePayload> {
     ]);
   if (pagesError) throw new Error(`Failed to fetch pages: ${pagesError.message}`);
 
+  const projects = await fetchProjects(db, siteId);
+
   const collectionMap: Record<string, RenderCollection> = {};
   for (const c of collections ?? []) {
     collectionMap[c.slug] = {
@@ -106,6 +146,7 @@ export async function fetchSite(): Promise<SitePayload> {
       anonKey: env.anonKey,
       collections: collectionMap,
       forms: formMap,
+      projects,
     },
   };
 }

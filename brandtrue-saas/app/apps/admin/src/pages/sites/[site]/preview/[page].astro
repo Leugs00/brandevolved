@@ -41,12 +41,31 @@ for (const f of forms ?? []) {
   formMap[f.slug] = { ...f, fields: (f.fields as RenderForm["fields"]) ?? [] };
 }
 
+// published projects for the project_list block preview
+const [{ data: pjRows }, { data: pjSvc }, { data: pjRes }] = await Promise.all([
+  db.from("public_projects").select("*").eq("site_id", site.id).order("sort_order"),
+  db.from("public_project_services").select("project_id, service_slug"),
+  db.from("public_project_results").select("project_id, result_type_slug"),
+]);
+const svcBy = new Map<string, string[]>();
+for (const s of pjSvc ?? []) svcBy.set(s.project_id, [...(svcBy.get(s.project_id) ?? []), s.service_slug].filter(Boolean) as string[]);
+const resBy = new Map<string, string[]>();
+for (const r of pjRes ?? []) resBy.set(r.project_id, [...(resBy.get(r.project_id) ?? []), r.result_type_slug].filter(Boolean) as string[]);
+const projects = (pjRows ?? []).map((p: any) => ({
+  id: p.id, slug: p.slug, title: p.title, project_summary: p.project_summary, hero_image_url: p.hero_image_url,
+  featured: p.featured, show_in_portfolio: p.show_in_portfolio, case_study_enabled: p.case_study_enabled,
+  business_name: p.business_name, industry_slug: p.industry_slug, industry_name: p.industry_name,
+  project_type_slug: p.project_type_slug, project_type_name: p.project_type_name,
+  service_slugs: svcBy.get(p.id) ?? [], result_type_slugs: resBy.get(p.id) ?? [],
+}));
+
 const context: RenderContext = {
   siteId: site.id,
   supabaseUrl: env.url,
   anonKey: env.anonKey,
   collections: collectionMap,
   forms: formMap,
+  projects,
   editable,
 };
 

@@ -1,0 +1,129 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+
+export async function getStaticPaths() {
+  const env = readEnv(import.meta.env as Record<string, string | undefined>);
+  const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+  if (!siteId) return [];
+  const db = createAnonClient(env);
+  const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+  const { data: projects } = await db
+    .from("public_projects")
+    .select("*")
+    .eq("site_id", siteId)
+    .eq("case_study_enabled", true);
+
+  const paths = [];
+  for (const p of projects ?? []) {
+    const [{ data: services }, { data: results }, { data: testimonials }] = await Promise.all([
+      db.from("public_project_services").select("service_name, service_slug").eq("project_id", p.id).order("sort_order"),
+      db.from("public_project_results").select("*").eq("project_id", p.id).order("sort_order"),
+      db.from("public_testimonials").select("*").eq("project_id", p.id),
+    ]);
+    paths.push({ params: { slug: p.slug }, props: { site, project: p, services: services ?? [], results: results ?? [], testimonials: testimonials ?? [] } });
+  }
+  return paths;
+}
+
+const { site, project, services, results, testimonials } = Astro.props as any;
+const gallery: any[] = Array.isArray(project.gallery) ? project.gallery : [];
+const before: any[] = Array.isArray(project.before_images) ? project.before_images : [];
+const after: any[] = Array.isArray(project.after_images) ? project.after_images : [];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={project.seo_title || `${project.title} — ${site.name}`}
+  description={project.seo_description || project.project_summary}
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath={`/work/${project.slug}`}
+>
+  <article class="cs">
+    <header class="cs__head">
+      <a class="cs__back" href="/work">← All work</a>
+      {project.project_type_name && <p class="cs__type">{project.project_type_name}</p>}
+      <h1>{project.title}</h1>
+      {project.business_name && <p class="cs__client">{project.business_name}{project.client_location ? ` · ${project.client_location}` : ""}</p>}
+      {project.project_summary && <p class="cs__summary">{project.project_summary}</p>}
+      {services.length > 0 && (
+        <p class="cs__services">{services.map((s: any) => <span>{s.service_name}</span>)}</p>
+      )}
+      {project.website_url && <a class="cs__visit" href={project.website_url} rel="nofollow noopener">Visit the live site →</a>}
+    </header>
+
+    {project.hero_image_url && <img class="cs__hero" src={project.hero_image_url} alt={project.title} />}
+
+    {results.length > 0 && (
+      <section class="cs__results">
+        {results.map((r: any) => (
+          <div class="cs__result">
+            <p class="cs__result-value">{r.display_value || r.title}</p>
+            {(r.time_period || r.description) && <p class="cs__result-note">{r.time_period || r.description}</p>}
+          </div>
+        ))}
+      </section>
+    )}
+
+    <div class="cs__body">
+      {project.challenge && <><h2>The challenge</h2><p>{project.challenge}</p></>}
+      {project.approach && <><h2>Our approach</h2><p>{project.approach}</p></>}
+      {project.solution && <><h2>The solution</h2><p>{project.solution}</p></>}
+      {project.outcome_summary && <><h2>The outcome</h2><p>{project.outcome_summary}</p></>}
+    </div>
+
+    {(before.length > 0 || after.length > 0) && (
+      <section class="cs__beforeafter">
+        {before.length > 0 && <div><h3>Before</h3><div class="cs__grid">{before.map((i: any) => <img src={i.src} alt={i.alt ?? ""} loading="lazy" />)}</div></div>}
+        {after.length > 0 && <div><h3>After</h3><div class="cs__grid">{after.map((i: any) => <img src={i.src} alt={i.alt ?? ""} loading="lazy" />)}</div></div>}
+      </section>
+    )}
+
+    {gallery.length > 0 && (
+      <section class="cs__gallery"><div class="cs__grid">{gallery.map((i: any) => <img src={i.src} alt={i.alt ?? ""} loading="lazy" />)}</div></section>
+    )}
+
+    {testimonials.length > 0 && (
+      <section class="cs__quotes">
+        {testimonials.map((t: any) => (
+          <blockquote>
+            <p>“{t.short_quote || t.quote}”</p>
+            <footer><strong>{t.display_name}</strong>{t.display_role || t.display_business ? ` — ${[t.display_role, t.display_business].filter(Boolean).join(", ")}` : ""}</footer>
+          </blockquote>
+        ))}
+      </section>
+    )}
+  </article>
+</SiteLayout>
+
+<style>
+  .cs { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; font-family: var(--f-body, system-ui, sans-serif); color: var(--c-text, #201e1f); }
+  .cs__back { color: var(--c-primary, #008378); text-decoration: none; font-size: 0.9rem; }
+  .cs__type { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; color: var(--c-primary, #008378); margin: 1rem 0 0.25rem; }
+  .cs h1 { font-family: var(--f-heading, Georgia, serif); font-size: clamp(2rem, 5vw, 3rem); margin: 0 0 0.5rem; }
+  .cs__client { color: #6b7280; margin: 0 0 1rem; }
+  .cs__summary { font-size: 1.15rem; line-height: 1.6; }
+  .cs__services { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0; }
+  .cs__services span { background: #f1f5f9; color: #475569; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.8rem; }
+  .cs__visit { display: inline-block; color: var(--c-primary, #008378); font-weight: 600; text-decoration: none; }
+  .cs__hero { width: 100%; border-radius: 0.75rem; margin: 1.5rem 0; }
+  .cs__results { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; margin: 2rem 0; }
+  .cs__result { background: var(--c-primary, #008378); color: #fff; border-radius: 0.75rem; padding: 1.25rem; }
+  .cs__result-value { font-family: var(--f-heading, Georgia, serif); font-size: 1.5rem; margin: 0 0 0.25rem; }
+  .cs__result-note { opacity: 0.9; font-size: 0.9rem; margin: 0; }
+  .cs__body h2 { font-family: var(--f-heading, Georgia, serif); margin: 2rem 0 0.5rem; }
+  .cs__body p { line-height: 1.7; }
+  .cs__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0.75rem; }
+  .cs__grid img { width: 100%; border-radius: 0.5rem; }
+  .cs__beforeafter { display: grid; gap: 1.5rem; margin: 2rem 0; }
+  .cs__beforeafter h3 { margin: 0 0 0.5rem; }
+  .cs__quotes { margin-top: 2.5rem; display: grid; gap: 1rem; }
+  .cs__quotes blockquote { background: #f8fafc; border-radius: 0.75rem; padding: 1.5rem; margin: 0; border: 1px solid #e5e7eb; }
+  .cs__quotes p { font-style: italic; margin: 0 0 0.75rem; }
+  .cs__quotes footer { color: #6b7280; font-size: 0.9rem; }
+</style>

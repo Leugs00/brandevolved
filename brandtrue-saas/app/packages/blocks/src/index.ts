@@ -29,14 +29,51 @@ export interface RenderCollection {
  * Built once per page render by the site engine (from published content)
  * or by the admin preview (from draft content).
  */
+/** A published project, flattened for public rendering (from public_projects). */
+export interface RenderProject {
+  id: string;
+  slug: string;
+  title: string;
+  project_summary: string | null;
+  hero_image_url: string | null;
+  featured: boolean;
+  show_in_portfolio: boolean;
+  case_study_enabled: boolean;
+  business_name: string | null;
+  industry_slug: string | null;
+  industry_name: string | null;
+  project_type_slug: string | null;
+  project_type_name: string | null;
+  service_slugs: string[];
+  result_type_slugs: string[];
+}
+
 export interface RenderContext {
   siteId: string;
   supabaseUrl: string;
   anonKey: string;
   collections: Record<string, RenderCollection>;
   forms: Record<string, RenderForm>;
+  /** published projects for portfolio / project-list blocks (optional) */
+  projects?: RenderProject[];
   /** true inside the admin visual editor — adds data-* hooks, disables scripts */
   editable?: boolean;
+}
+
+/** Filter published projects by a project_list block's optional filters. */
+export function filterProjects(
+  projects: RenderProject[],
+  opts: { service?: string; industry?: string; type?: string; result?: string; featured?: boolean; portfolioOnly?: boolean },
+): RenderProject[] {
+  return projects.filter((p) => {
+    if (opts.portfolioOnly && !p.show_in_portfolio) return false;
+    if (opts.featured && !p.featured) return false;
+    if (opts.service && !p.service_slugs.includes(opts.service)) return false;
+    if (opts.result && !p.result_type_slugs.includes(opts.result)) return false;
+    if (opts.industry && p.industry_slug !== opts.industry) return false;
+    if (opts.type && p.project_type_slug !== opts.type) return false;
+    return true;
+  });
 }
 
 /** Filter items by a block's filter_field/filter_value (array includes, scalar equals). */

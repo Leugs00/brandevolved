@@ -10,6 +10,7 @@ import CollectionList from "./CollectionList.astro";
 import FormEmbed from "./FormEmbed.astro";
 import Faq from "./Faq.astro";
 import TestimonialStrip from "./TestimonialStrip.astro";
+import ProjectList from "./ProjectList.astro";
 
 interface Props {
   block: RenderBlock;
@@ -29,6 +30,7 @@ const components: Record<string, any> = {
   form_embed: FormEmbed,
   faq: Faq,
   testimonial_strip: TestimonialStrip,
+  project_list: ProjectList,
 };
 
 const Component = components[block.kind];

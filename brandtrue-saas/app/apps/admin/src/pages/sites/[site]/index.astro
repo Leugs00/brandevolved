@@ -44,6 +44,37 @@ const y = (v: number) => H - PAD - (v / max) * (H - PAD * 2);
 
 const fmtDay = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-NZ", { day: "numeric", month: "short" });
 
+// content counts for the portfolio dashboard
+const c = (table: string, filter?: (q: any) => any) => {
+  let q = db.from(table).select("id", { count: "exact", head: true }).eq("site_id", site.id);
+  if (filter) q = filter(q);
+  return q;
+};
+const [
+  svcPub, svcDraft, projPub, projDraft, projPortfolio, projCase, testPub, testAwaiting, confidential,
+] = await Promise.all([
+  c("services", (q) => q.eq("status", "published")),
+  c("services", (q) => q.eq("status", "draft")),
+  c("projects", (q) => q.eq("status", "published")),
+  c("projects", (q) => q.eq("status", "draft")),
+  c("projects", (q) => q.eq("status", "published").eq("show_in_portfolio", true)),
+  c("projects", (q) => q.eq("case_study_enabled", true)),
+  c("testimonials", (q) => q.eq("status", "published")),
+  c("testimonials", (q) => q.eq("permission_confirmed", false)),
+  c("showcase_clients", (q) => q.eq("status", "confidential")),
+]);
+const contentStats = [
+  { label: "Published services", value: svcPub.count ?? 0, href: `/sites/${site.id}/services?status=published` },
+  { label: "Draft services", value: svcDraft.count ?? 0, href: `/sites/${site.id}/services?status=draft` },
+  { label: "Published projects", value: projPub.count ?? 0, href: `/sites/${site.id}/projects?status=published` },
+  { label: "Draft projects", value: projDraft.count ?? 0, href: `/sites/${site.id}/projects?status=draft` },
+  { label: "In the portfolio", value: projPortfolio.count ?? 0, href: `/sites/${site.id}/projects?portfolio=yes` },
+  { label: "Full case studies", value: projCase.count ?? 0, href: `/sites/${site.id}/projects?case=yes` },
+  { label: "Published testimonials", value: testPub.count ?? 0, href: `/sites/${site.id}/testimonials?status=published` },
+  { label: "Awaiting permission", value: testAwaiting.count ?? 0, href: `/sites/${site.id}/testimonials?permission=no` },
+  { label: "Confidential clients", value: confidential.count ?? 0, href: `/sites/${site.id}/clients?status=confidential` },
+];
+
 const recentRows = (recent ?? []).map((s) => {
   const d = (s.data ?? {}) as Record<string, string>;
   return {
@@ -65,10 +96,30 @@ const tiles = [
 
 <AdminLayout title={site.name} site={site} active="">
   <div class="p-8 max-w-5xl space-y-8">
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight">{site.name}</h1>
-      <p class="text-sm text-slate-500 mt-1">Last 30 days at a glance</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">{site.name}</h1>
+        <p class="text-sm text-slate-500 mt-1">Last 30 days at a glance</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href={`/sites/${site.id}/services/new`} class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-slate-50">+ Service</a>
+        <a href={`/sites/${site.id}/clients/new`} class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-slate-50">+ Client</a>
+        <a href={`/sites/${site.id}/projects/new`} class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-slate-50">+ Project</a>
+        <a href={`/sites/${site.id}/testimonials/new`} class="rounded-lg bg-brand-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-800">+ Testimonial</a>
+      </div>
     </div>
+
+    <section>
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Your portfolio content</h2>
+      <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        {contentStats.map((t) => (
+          <a href={t.href} class="rounded-xl border border-slate-200 bg-white p-3.5 block hover:border-brand-600 transition">
+            <p class="text-2xl font-bold tabular-nums tracking-tight">{t.value}</p>
+            <p class="text-xs text-slate-500 mt-0.5 leading-snug">{t.label}</p>
+          </a>
+        ))}
+      </div>
+    </section>
 
     <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
       {tiles.map((t) => (

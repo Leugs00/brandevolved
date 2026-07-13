@@ -199,6 +199,32 @@ export const blockDefs: Record<string, BlockDef> = {
       .passthrough(),
     defaults: { heading: "Get in touch", form_slug: "contact" },
   },
+  project_list: {
+    kind: "project_list",
+    label: "Portfolio / projects",
+    description: "Shows your published projects (portfolio, our work, case studies). Edit projects in the Projects section.",
+    fields: {
+      heading: { type: "text", label: "Heading", help: "Optional title shown above the projects." },
+      layout: { type: "select", label: "Layout", options: ["grid", "list"], help: "Grid of cards or a vertical list." },
+      limit: { type: "number", label: "Max projects", help: "Show at most this many." },
+      featured_only: { type: "select", label: "Featured only?", options: ["no", "yes"], help: "Yes = only featured projects (e.g. for a homepage)." },
+      filter_service: { type: "text", label: "Only this service (slug)", help: "Optional — e.g. website-design. Shows only projects that used it." },
+      filter_industry: { type: "text", label: "Only this industry (slug)", help: "Optional — e.g. health-and-wellness." },
+      filter_type: { type: "text", label: "Only this project type (slug)", help: "Optional — e.g. website-and-brand." },
+    },
+    schema: z
+      .object({
+        heading: z.string().default(""),
+        layout: z.enum(["grid", "list"]).default("grid"),
+        limit: z.number().int().positive().max(60).default(12),
+        featured_only: z.enum(["no", "yes"]).default("no"),
+        filter_service: z.string().default(""),
+        filter_industry: z.string().default(""),
+        filter_type: z.string().default(""),
+      })
+      .passthrough(),
+    defaults: { heading: "Our work", layout: "grid", limit: 12, featured_only: "no", filter_service: "", filter_industry: "", filter_type: "" },
+  },
   faq: {
     kind: "faq",
     label: "FAQ",
