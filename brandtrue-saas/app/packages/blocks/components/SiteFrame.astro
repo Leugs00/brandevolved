@@ -90,14 +90,19 @@ const fontFaceCss = fonts
           siteName
         )}
       </a>
-      <nav>
+      <nav id="site-nav">
         {nav.map((item) => (
           <a href={item.href} class:list={{ active: item.href === currentPath }}>{item.label}</a>
         ))}
+      </nav>
+      <div class="site-header__actions">
         {headerCta?.label && (
           <a class="site-header__cta" href={headerCta.href}>{headerCta.label}</a>
         )}
-      </nav>
+        <button class="site-header__burger" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </header>
     <main><slot /></main>
     {footer ? (
@@ -131,6 +136,16 @@ const fontFaceCss = fonts
       // (the hiding styles only apply under html.js) and under
       // prefers-reduced-motion everything renders instantly.
       document.documentElement.classList.add("js");
+      (function () {
+        var burger = document.querySelector(".site-header__burger");
+        var header = document.querySelector(".site-header");
+        if (burger && header) {
+          burger.addEventListener("click", function () {
+            var open = header.classList.toggle("nav-open");
+            burger.setAttribute("aria-expanded", String(open));
+          });
+        }
+      })();
       (function () {
         var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         var els = document.querySelectorAll("[data-anim]");
@@ -227,17 +242,48 @@ const fontFaceCss = fonts
     -webkit-background-clip: text; background-clip: text;
     color: transparent; -webkit-text-fill-color: transparent;
   }
-  nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); }
+  nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); margin-left: auto; }
   nav a {
     color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.82rem;
     font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   }
   nav a.active, nav a:hover { color: var(--c-primary, #008378); }
-  nav a.site-header__cta {
+  .site-header__actions { display: flex; align-items: center; gap: 0.9rem; }
+  .site-header--overlay .site-header__actions { padding-top: 0.5rem; }
+  .site-header__cta {
+    text-decoration: none; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
     background: var(--c-accent); color: #fff; padding: 0.7rem 1.5rem; border-radius: 999px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease; white-space: nowrap;
   }
-  nav a.site-header__cta:hover { color: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+  .site-header__cta:hover { color: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+  .site-header__burger { display: none; }
+  @media (max-width: 52rem) {
+    /* logo + button + hamburger on one line; links collapse into a panel */
+    .site-header { flex-wrap: nowrap; align-items: center; }
+    .site-header__burger {
+      display: inline-flex; flex-direction: column; justify-content: center; gap: 5px;
+      width: 2.6rem; height: 2.6rem; padding: 0.55rem;
+      background: transparent; border: none; cursor: pointer;
+    }
+    .site-header__burger span {
+      display: block; height: 2px; width: 100%; background: var(--c-primary); border-radius: 2px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .nav-open .site-header__burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-open .site-header__burger span:nth-child(2) { opacity: 0; }
+    .nav-open .site-header__burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    nav {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      flex-direction: column; align-items: flex-start; gap: 0;
+      background: var(--c-cream, #f8f3ec); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+      padding: 0.5rem 0; z-index: 20;
+    }
+    .nav-open nav { display: flex; }
+    nav a { width: 100%; padding: 0.85rem 1.5rem; }
+    .site-header__cta { padding: 0.6rem 1.1rem; font-size: 0.74rem; }
+    .site-header { position: relative; }
+    .site-header--overlay { position: absolute; }
+  }
 
   .site-footer {
     border-top: 1px solid #e5e7eb; padding: 1.5rem; text-align: center;

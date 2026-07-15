@@ -72,6 +72,10 @@ const dividers = data.dividers === "yes";
     font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
     font-size: 1.35rem; line-height: 1.25; margin: 0 0 0.7rem;
   }
+  /* reserve two heading lines so the paragraphs start level across columns */
+  @media (min-width: 46rem) {
+    .lm-icons:not(.lm-icons--dark) .lm-icons__grid h3 { min-height: 2.5em; }
+  }
   .lm-icons__item p { line-height: 1.7; font-size: 0.95rem; margin: 0; }
 
   /* vertical gold lines between columns */
