@@ -323,6 +323,7 @@ export const blockDefs: Record<string, BlockDef> = {
       cta_label: { type: "text", label: "Button label", help: "Optional gold button text." },
       cta_href: { type: "url", label: "Button link", help: "Where the gold button goes." },
       arrow_image: { type: "image", label: "Arrow image", help: "Optional hand-drawn arrow shown beside the button." },
+      wash_image: { type: "image", label: "Watercolor behind text", help: "Optional watercolor texture shown softly behind the text column." },
       cta2_label: { type: "text", label: "Second button label", help: "Optional outlined button text." },
       cta2_href: { type: "url", label: "Second button link", help: "Where the outlined button goes." },
     },
@@ -340,6 +341,7 @@ export const blockDefs: Record<string, BlockDef> = {
         cta_label: z.string().default(""),
         cta_href: z.string().default(""),
         arrow_image: image,
+        wash_image: image,
         cta2_label: z.string().default(""),
         cta2_href: z.string().default(""),
       })

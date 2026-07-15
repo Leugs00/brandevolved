@@ -3,8 +3,12 @@ export interface SiteSettings {
   navigation?: { label: string; href: string }[];
   theme?: Record<string, string>;
   footer_text?: string;
-  /** Text logo rendered in the logo font (or an image url). */
-  logo?: { text?: string; image?: string };
+  /** Text logo rendered in the logo font (or an image url). `texture_image`
+   *  fills the letters with a texture; `size: "large"` makes it a stacked
+   *  hero-style logo. */
+  logo?: { text?: string; image?: string; texture_image?: string; size?: "normal" | "large" };
+  /** "overlay" floats a transparent header over the first section. */
+  header_style?: "solid" | "overlay";
   /** Pill button at the right of the header. */
   header_cta?: { label: string; href: string };
   /** Rich footer. Falls back to the simple footer_text line. */
@@ -29,6 +33,8 @@ const { siteName, title, description, settings, currentPath } = Astro.props;
 const theme = settings.theme ?? {};
 const nav = settings.navigation ?? [];
 const logo = settings.logo ?? {};
+const headerOverlay = settings.header_style === "overlay";
+const logoLarge = logo.size === "large";
 const headerCta = settings.header_cta;
 const footer = settings.footer;
 const fonts = settings.fonts ?? [];
@@ -71,12 +77,15 @@ const fontFaceCss = fonts
     <slot name="head" />
   </head>
   <body>
-    <header class="site-header">
+    <header class:list={["site-header", { "site-header--overlay": headerOverlay }]}>
       <a class="site-header__brand" href="/" aria-label={siteName}>
         {logo.image ? (
-          <img src={logo.image} alt={siteName} class="site-header__logo-img" />
+          <img src={logo.image} alt={siteName} class:list={["site-header__logo-img", { "site-header__logo-img--large": logoLarge }]} />
         ) : logo.text ? (
-          <span class="site-header__logo-text">{logo.text}</span>
+          <span
+            class:list={["site-header__logo-text", { "site-header__logo-text--large": logoLarge, "site-header__logo-text--textured": !!logo.texture_image }]}
+            style={logo.texture_image ? `background-image:url('${logo.texture_image}')` : undefined}
+          >{logo.text}</span>
         ) : (
           siteName
         )}
@@ -190,10 +199,33 @@ const fontFaceCss = fonts
     font-family: var(--f-body, system-ui, sans-serif); background: var(--c-bg, #fff);
     position: relative; z-index: 5;
   }
+  .site-header--overlay {
+    position: absolute; top: 0; left: 0; right: 0; background: transparent;
+    align-items: flex-start; padding-top: 1.4rem;
+  }
+  .site-header--overlay nav { padding-top: 0.9rem; }
+  @media (max-width: 46rem) {
+    /* keep nav readable when the overlay sits on a photo */
+    .site-header--overlay {
+      background: linear-gradient(180deg, rgba(248, 243, 236, 0.94) 55%, rgba(248, 243, 236, 0));
+      padding-bottom: 2.2rem;
+    }
+  }
   .site-header__brand { text-decoration: none; }
   .site-header__logo-img { height: 3.4rem; width: auto; display: block; }
+  .site-header__logo-img--large { height: 7.5rem; }
   .site-header__logo-text {
     font-family: var(--f-logo); font-size: 2.1rem; line-height: 0.9; color: var(--c-primary);
+  }
+  .site-header__logo-text--large {
+    display: inline-block; font-size: clamp(3rem, 6vw, 4.6rem); line-height: 0.82;
+    white-space: pre-line; max-width: 6ch;
+  }
+  .site-header__logo-text--textured {
+    background-color: var(--c-primary); background-blend-mode: multiply;
+    background-size: cover; background-position: 30% 60%;
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
   }
   nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); }
   nav a {

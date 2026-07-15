@@ -11,13 +11,17 @@ const image = data.image ?? {};
 const side = data.image_side === "left" ? "left" : "right";
 const bg = String(data.background ?? "cream");
 const framed = data.image_style === "framed";
+const wash = data.wash_image ?? {};
 const paragraphs = String(data.body ?? "")
   .split(/\n\s*\n/)
   .map((p) => p.trim())
   .filter(Boolean);
 ---
 
-<section class:list={["lm-intro", `lm-intro--img-${side}`, `lm-intro--bg-${bg}`]}>
+<section
+  class:list={["lm-intro", `lm-intro--img-${side}`, `lm-intro--bg-${bg}`, { "lm-intro--washed": !!wash.src }]}
+  style={wash.src ? `--wash:url('${wash.src}')` : undefined}
+>
   <div class="lm-intro__content">
     {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
     <h2 data-field="heading" data-anim>{data.heading}</h2>
@@ -66,6 +70,12 @@ const paragraphs = String(data.body ?? "")
   .lm-intro--bg-white { background: var(--c-bg); }
   .lm-intro--img-left .lm-intro__media { order: -1; }
   .lm-intro__content { padding: clamp(2.5rem, 6vw, 5.5rem); max-width: 36rem; justify-self: center; }
+  /* soft watercolor wash behind the text column, feathered at the edges */
+  .lm-intro--washed .lm-intro__content {
+    background: var(--wash) center / cover no-repeat;
+    -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 42%, transparent 74%);
+    mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 42%, transparent 74%);
+  }
   h2 {
     font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
     font-size: clamp(1.8rem, 3.4vw, 2.6rem); line-height: 1.18; margin: 0; white-space: pre-line;
@@ -78,9 +88,9 @@ const paragraphs = String(data.body ?? "")
   .lm-intro__arrow { height: 3rem; width: auto; transform: rotate(90deg); }
   .lm-intro__media { align-self: stretch; min-height: 24rem; }
   /* framed: smaller polaroid-style photo instead of a full-bleed column */
-  .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.5rem, 4vw, 3rem); }
+  .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.25rem, 3vw, 2.5rem); }
   .lm-intro__media--framed img, .lm-intro--img-left .lm-intro__media--framed img {
-    width: 100%; max-width: 24rem; height: auto; margin: 0 auto; display: block;
+    width: 100%; max-width: 31rem; height: auto; margin: 0 auto; display: block;
     background: #fff; padding: 0.9rem 0.9rem 1.4rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
     -webkit-mask-image: none; mask-image: none;
   }
