@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-hidden="true">
+  <!-- laptop body -->
+  <rect x="102" y="96" width="308" height="230" rx="14" stroke="#22403c" stroke-width="9"/>
+  <path d="M70 388 L102 326 h308 l32 62 c4 8 -2 18 -12 18 H82 c-10 0 -16 -10 -12 -18 Z" stroke="#22403c" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M215 388 h82" stroke="#22403c" stroke-width="9" stroke-linecap="round"/>
+  <!-- browser chrome -->
+  <path d="M102 138 h308" stroke="#22403c" stroke-width="7"/>
+  <circle cx="128" cy="118" r="5" fill="#22403c"/>
+  <circle cx="148" cy="118" r="5" fill="#22403c"/>
+  <circle cx="168" cy="118" r="5" fill="#22403c"/>
+  <!-- image block with mountains -->
+  <rect x="126" y="158" width="118" height="86" rx="4" stroke="#22403c" stroke-width="7"/>
+  <path d="M132 236 l34 -40 26 28 20 -24 26 34" fill="#bfe0d8" stroke="#8fc7b8" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="216" cy="180" r="11" stroke="#c9962e" stroke-width="6"/>
+  <!-- text lines -->
+  <path d="M266 166 h118 M266 188 h118 M266 210 h92" stroke="#22403c" stroke-width="7" stroke-linecap="round"/>
+  <rect x="266" y="228" width="64" height="18" rx="4" fill="#bfe0d8"/>
+  <!-- declining chart -->
+  <path d="M126 268 l40 14 44 12 48 8 46 4" stroke="#22403c" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="166" cy="282" r="6" fill="#fff" stroke="#22403c" stroke-width="5"/>
+  <circle cx="210" cy="294" r="6" fill="#fff" stroke="#22403c" stroke-width="5"/>
+  <circle cx="258" cy="302" r="6" fill="#fff" stroke="#22403c" stroke-width="5"/>
+  <path d="M304 306 l22 2 -10 -12 M326 308 l-12 8" stroke="#22403c" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- error badge -->
+  <circle cx="392" cy="316" r="74" fill="#fff" stroke="#22403c" stroke-width="8"/>
+  <path d="M362 286 l60 60 M422 286 l-60 60" stroke="#c9962e" stroke-width="12" stroke-linecap="round"/>
+  <text x="392" y="368" text-anchor="middle" font-family="Georgia, serif" font-size="26" fill="#22403c">error</text>
+  <!-- sparkle -->
+  <path d="M452 232 l14 -20 M466 248 l20 -10 M470 226 l12 -14" stroke="#c9962e" stroke-width="7" stroke-linecap="round"/>
+</svg>

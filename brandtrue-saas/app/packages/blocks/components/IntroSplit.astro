@@ -10,6 +10,7 @@ const { data } = Astro.props;
 const image = data.image ?? {};
 const side = data.image_side === "left" ? "left" : "right";
 const bg = String(data.background ?? "cream");
+const framed = data.image_style === "framed";
 const paragraphs = String(data.body ?? "")
   .split(/\n\s*\n/)
   .map((p) => p.trim())
@@ -32,8 +33,10 @@ const paragraphs = String(data.body ?? "")
         {data.cta_label && (
           <a class="lm-btn" href={data.cta_href || "#"}>
             <span data-field="cta_label">{data.cta_label}</span>
-            <span class="lm-btn__arrow" aria-hidden="true">→</span>
           </a>
+        )}
+        {data.arrow_image?.src && (
+          <img class="lm-intro__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />
         )}
         {data.cta2_label && (
           <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
@@ -44,8 +47,13 @@ const paragraphs = String(data.body ?? "")
     )}
   </div>
   {image.src && (
-    <div class="lm-intro__media">
-      <img src={image.src} alt={image.alt ?? ""} loading="lazy" />
+    <div class:list={["lm-intro__media", { "lm-intro__media--framed": framed }]}>
+      <img
+        src={image.src}
+        alt={image.alt ?? ""}
+        loading="lazy"
+        style={data.image_position ? `object-position:${data.image_position}` : undefined}
+      />
     </div>
   )}
 </section>
@@ -66,8 +74,16 @@ const paragraphs = String(data.body ?? "")
   .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
   .lm-intro__script { text-align: right; margin: 1rem 0 0; font-size: 2.5rem; }
   .lm-intro--img-left .lm-intro__script { text-align: left; }
-  .lm-intro__ctas { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.6rem; }
+  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1.6rem; }
+  .lm-intro__arrow { height: 3rem; width: auto; transform: rotate(90deg); }
   .lm-intro__media { align-self: stretch; min-height: 24rem; }
+  /* framed: smaller polaroid-style photo instead of a full-bleed column */
+  .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.5rem, 4vw, 3rem); }
+  .lm-intro__media--framed img, .lm-intro--img-left .lm-intro__media--framed img {
+    width: 100%; max-width: 24rem; height: auto; margin: 0 auto; display: block;
+    background: #fff; padding: 0.9rem 0.9rem 1.4rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+    -webkit-mask-image: none; mask-image: none;
+  }
   .lm-intro__media img {
     width: 100%; height: 100%; object-fit: cover; display: block;
     -webkit-mask-image: linear-gradient(95deg, transparent 0%, #000 12%);

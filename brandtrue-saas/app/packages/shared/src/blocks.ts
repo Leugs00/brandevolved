@@ -288,8 +288,9 @@ export const blockDefs: Record<string, BlockDef> = {
       body: { type: "text", label: "Supporting text", help: "One or two sentences under the accent line." },
       cta_label: { type: "text", label: "Button label", help: "Text on the gold button. Leave empty for no button." },
       cta_href: { type: "url", label: "Button link", help: "Where the button goes — e.g. /book." },
-      image: { type: "image", label: "Photo", help: "The large portrait on the right. A soft edge blends it into the background." },
-      wash_image: { type: "image", label: "Watercolor background", help: "Optional texture image behind the whole hero." },
+      image: { type: "image", label: "Photo", help: "The full-width photo behind the hero; the watercolor wash overlays its left side." },
+      wash_image: { type: "image", label: "Watercolor overlay", help: "Texture laid over the photo behind the text, fading out to the right." },
+      arrow_image: { type: "image", label: "Arrow image", help: "Optional hand-drawn arrow shown beside the button." },
     },
     schema: z
       .object({
@@ -300,6 +301,7 @@ export const blockDefs: Record<string, BlockDef> = {
         cta_href: z.string().default(""),
         image,
         wash_image: image,
+        arrow_image: image,
       })
       .passthrough(),
     defaults: { heading: "Your headline", script_line: "", body: "", cta_label: "", cta_href: "" },
@@ -315,9 +317,12 @@ export const blockDefs: Record<string, BlockDef> = {
       script_line: { type: "text", label: "Script accent", help: "Optional handwritten-style line after the text, e.g. Real. Warm. Human." },
       image: { type: "image", label: "Photo", help: "The image beside the text." },
       image_side: { type: "select", label: "Photo side", options: ["right", "left"], help: "Which side the photo sits on (desktop)." },
+      image_position: { type: "text", label: "Photo focus point", help: "Which part of the photo stays visible when it's cropped — e.g. right top, center, left bottom. Leave empty for center." },
+      image_style: { type: "select", label: "Photo style", options: ["full", "framed"], help: "Full = photo fills its half edge-to-edge. Framed = smaller polaroid-style photo with a white border." },
       background: { type: "select", label: "Background", options: ["cream", "white"], help: "Section background colour." },
       cta_label: { type: "text", label: "Button label", help: "Optional gold button text." },
       cta_href: { type: "url", label: "Button link", help: "Where the gold button goes." },
+      arrow_image: { type: "image", label: "Arrow image", help: "Optional hand-drawn arrow shown beside the button." },
       cta2_label: { type: "text", label: "Second button label", help: "Optional outlined button text." },
       cta2_href: { type: "url", label: "Second button link", help: "Where the outlined button goes." },
     },
@@ -329,9 +334,12 @@ export const blockDefs: Record<string, BlockDef> = {
         script_line: z.string().default(""),
         image,
         image_side: z.enum(["right", "left"]).default("right"),
+        image_position: z.string().default(""),
+        image_style: z.enum(["full", "framed"]).default("full"),
         background: z.enum(["cream", "white"]).default("cream"),
         cta_label: z.string().default(""),
         cta_href: z.string().default(""),
+        arrow_image: image,
         cta2_label: z.string().default(""),
         cta2_href: z.string().default(""),
       })
@@ -359,8 +367,9 @@ export const blockDefs: Record<string, BlockDef> = {
           body: { type: "text", label: "Text", help: "Optional supporting text." },
         },
       },
-      style: { type: "select", label: "Background style", options: ["plain", "mint", "watercolor"], help: "Plain white, soft cream, or a watercolor wash image." },
-      wash_image: { type: "image", label: "Watercolor image", help: "Only used when style is watercolor." },
+      style: { type: "select", label: "Background style", options: ["plain", "mint", "watercolor", "dark"], help: "Plain white, soft cream, a watercolor wash image, or dark teal with light text." },
+      wash_image: { type: "image", label: "Background image", help: "Used when style is watercolor or dark." },
+      dividers: { type: "select", label: "Gold lines between columns?", options: ["no", "yes"], help: "Yes = a thin gold vertical line separates the columns." },
     },
     schema: z
       .object({
@@ -373,8 +382,9 @@ export const blockDefs: Record<string, BlockDef> = {
         items: z
           .array(z.object({ icon: image, title: z.string().default(""), body: z.string().default("") }))
           .default([]),
-        style: z.enum(["plain", "mint", "watercolor"]).default("plain"),
+        style: z.enum(["plain", "mint", "watercolor", "dark"]).default("plain"),
         wash_image: image,
+        dividers: z.enum(["no", "yes"]).default("no"),
       })
       .passthrough(),
     defaults: { heading: "Section heading", style: "plain", items: [] },

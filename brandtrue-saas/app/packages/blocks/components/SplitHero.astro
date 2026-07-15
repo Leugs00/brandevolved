@@ -12,6 +12,12 @@ const wash = data.wash_image ?? {};
 ---
 
 <section class="lm-hero" style={wash.src ? `--wash:url('${wash.src}')` : undefined}>
+  {image.src && (
+    <div class="lm-hero__media" aria-hidden="false">
+      <img src={image.src} alt={image.alt ?? ""} fetchpriority="high" />
+    </div>
+  )}
+  <div class="lm-hero__wash" aria-hidden="true"></div>
   <div class="lm-hero__content">
     <span class="lm-hero__rule" aria-hidden="true"></span>
     <h1 data-field="heading" data-anim>{data.heading}</h1>
@@ -20,26 +26,35 @@ const wash = data.wash_image ?? {};
     )}
     {data.body && <p class="lm-hero__body" data-field="body" data-anim style="--anim-delay:.3s">{data.body}</p>}
     {data.cta_label && (
-      <a class="lm-btn lm-hero__cta" href={data.cta_href || "#"} data-anim style="--anim-delay:.45s">
-        <span data-field="cta_label">{data.cta_label}</span>
-        <span class="lm-btn__arrow" aria-hidden="true">→</span>
-      </a>
+      <div class="lm-hero__cta-row" data-anim style="--anim-delay:.45s">
+        <a class="lm-btn lm-hero__cta" href={data.cta_href || "#"}>
+          <span data-field="cta_label">{data.cta_label}</span>
+        </a>
+        {data.arrow_image?.src && (
+          <img class="lm-hero__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />
+        )}
+      </div>
     )}
   </div>
-  {image.src && (
-    <div class="lm-hero__media">
-      <img src={image.src} alt={image.alt ?? ""} fetchpriority="high" />
-    </div>
-  )}
 </section>
 
 <style>
-  .lm-hero {
-    display: grid; grid-template-columns: minmax(20rem, 42%) 1fr; align-items: center;
-    background: var(--c-bg) var(--wash, none) center / cover no-repeat;
-    min-height: min(46rem, 92vh); overflow: hidden;
+  /* full-bleed photo behind everything; watercolor wash overlays it and
+     fades out to the right so the portrait stays clear */
+  .lm-hero { position: relative; min-height: min(46rem, 92vh); display: flex; align-items: center; overflow: hidden; }
+  .lm-hero__media { position: absolute; inset: 0; z-index: 0; }
+  .lm-hero__media img { width: 100%; height: 100%; object-fit: cover; object-position: 65% 30%; display: block; }
+  .lm-hero__wash {
+    position: absolute; inset: 0; z-index: 1;
+    background: var(--wash, linear-gradient(90deg, var(--c-cream), transparent)) left center / cover no-repeat;
+    -webkit-mask-image: linear-gradient(90deg, #000 34%, rgba(0, 0, 0, 0.55) 48%, transparent 66%);
+    mask-image: linear-gradient(90deg, #000 34%, rgba(0, 0, 0, 0.55) 48%, transparent 66%);
   }
-  .lm-hero__content { padding: clamp(2rem, 6vw, 5rem); max-width: 34rem; justify-self: end; }
+  .lm-hero__content {
+    position: relative; z-index: 2;
+    padding: clamp(2rem, 6vw, 5rem); max-width: 34rem;
+    margin-left: clamp(0rem, 6vw, 6rem);
+  }
   .lm-hero__rule { display: block; width: 6.5rem; height: 2px; background: var(--c-accent); margin-bottom: 1.6rem; }
   h1 {
     font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
@@ -47,21 +62,26 @@ const wash = data.wash_image ?? {};
   }
   .lm-hero__script { margin: 0 0 1.1rem; font-size: 2.8rem; }
   .lm-hero__body { line-height: 1.7; font-size: 1.05rem; margin: 0 0 2rem; }
+  .lm-hero__cta-row { display: flex; align-items: center; gap: 0.9rem; }
+  .lm-hero__arrow { height: 3.4rem; width: auto; transform: rotate(90deg); }
   .lm-hero__cta { animation: lm-pulse 1.6s ease 1.4s 1; }
   @keyframes lm-pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(183, 151, 98, 0); }
     45% { box-shadow: 0 0 0 12px rgba(183, 151, 98, 0.25); }
   }
   @media (prefers-reduced-motion: reduce) { .lm-hero__cta { animation: none; } }
-  .lm-hero__media { align-self: stretch; }
-  .lm-hero__media img {
-    width: 100%; height: 100%; object-fit: cover; display: block;
-    -webkit-mask-image: linear-gradient(100deg, transparent 0%, #000 14%);
-    mask-image: linear-gradient(100deg, transparent 0%, #000 14%);
-  }
   @media (max-width: 46rem) {
-    .lm-hero { grid-template-columns: 1fr; }
-    .lm-hero__content { justify-self: start; padding-bottom: 1rem; }
-    .lm-hero__media img { -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%); mask-image: linear-gradient(180deg, transparent 0%, #000 12%); max-height: 26rem; }
+    /* text stays ON TOP of the photo: the wash + a cream underlay rise from
+       the bottom so the headline is always legible over the portrait */
+    .lm-hero { min-height: 92vh; align-items: flex-end; }
+    .lm-hero__media img { object-position: 72% 15%; }
+    .lm-hero__wash {
+      background:
+        var(--wash, none) center bottom / cover no-repeat,
+        linear-gradient(var(--c-cream), var(--c-cream));
+      -webkit-mask-image: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.88) 48%, #000 58%);
+      mask-image: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.88) 48%, #000 58%);
+    }
+    .lm-hero__content { margin-left: 0; padding-top: 42vh; }
   }
 </style>
