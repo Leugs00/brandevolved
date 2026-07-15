@@ -59,6 +59,24 @@ const projects = (pjRows ?? []).map((p: any) => ({
   service_slugs: svcBy.get(p.id) ?? [], result_type_slugs: resBy.get(p.id) ?? [],
 }));
 
+// published testimonials for the testimonial_carousel block preview
+const [{ data: tRows }, { data: tSvc }] = await Promise.all([
+  db.from("public_testimonials").select("*").eq("site_id", site.id).order("sort_order"),
+  db.from("testimonial_services").select("testimonial_id, services(slug)").eq("site_id", site.id),
+]);
+const tSvcBy = new Map<string, string[]>();
+for (const row of tSvc ?? []) {
+  const slug = (row.services as any)?.slug;
+  if (slug) tSvcBy.set(row.testimonial_id, [...(tSvcBy.get(row.testimonial_id) ?? []), slug]);
+}
+const testimonials = (tRows ?? []).map((t: any) => ({
+  id: t.id, quote: t.quote, short_quote: t.short_quote,
+  display_name: t.display_name, display_role: t.display_role, display_business: t.display_business,
+  display_photo: t.display_photo, client_location: t.client_location, client_website: t.client_website,
+  rating: t.rating == null ? null : Number(t.rating), featured: !!t.featured,
+  service_slugs: tSvcBy.get(t.id) ?? [],
+}));
+
 const context: RenderContext = {
   siteId: site.id,
   supabaseUrl: env.url,
@@ -66,6 +84,7 @@ const context: RenderContext = {
   collections: collectionMap,
   forms: formMap,
   projects,
+  testimonials,
   editable,
 };
 

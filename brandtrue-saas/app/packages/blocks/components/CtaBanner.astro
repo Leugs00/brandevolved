@@ -1,0 +1,43 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const buttons: Record<string, any>[] = Array.isArray(data.buttons) ? data.buttons : [];
+const bg = data.bg_image ?? {};
+---
+
+<section class="lm-cta" style={bg.src ? `--bg:url('${bg.src}')` : undefined}>
+  <div class="lm-cta__inner">
+    <h2 data-field="heading" data-anim>{data.heading}</h2>
+    {data.body && <p data-field="body" data-anim style="--anim-delay:.15s">{data.body}</p>}
+    {buttons.length > 0 && (
+      <div class="lm-cta__buttons" data-anim style="--anim-delay:.3s">
+        {buttons.map((b, i) => (
+          <a class:list={["lm-btn", { "lm-btn--ghost": i > 0 }]} href={b.href || "#"}>{b.label}</a>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .lm-cta {
+    padding: clamp(3.5rem, 8vw, 6.5rem) 1.5rem; text-align: center;
+    background: var(--c-primary-deep, #0a5c52) var(--bg, none) center / cover no-repeat;
+    color: #f4f8f7;
+  }
+  .lm-cta__inner { max-width: 46rem; margin: 0 auto; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: #fff;
+    font-size: clamp(1.9rem, 3.6vw, 2.7rem); line-height: 1.2; margin: 0 0 1rem;
+  }
+  p { line-height: 1.75; margin: 0 auto 2rem; max-width: 38rem; }
+  .lm-cta__buttons { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+  .lm-btn--ghost { background: transparent; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.65); }
+  .lm-btn--ghost:hover { background: rgba(255, 255, 255, 0.12); }
+</style>

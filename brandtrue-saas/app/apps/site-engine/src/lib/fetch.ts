@@ -1,5 +1,40 @@
 import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
-import type { RenderBlock, RenderCollection, RenderContext, RenderForm, RenderProject } from "@brandevolved/blocks";
+import type {
+  RenderBlock,
+  RenderCollection,
+  RenderContext,
+  RenderForm,
+  RenderProject,
+  RenderTestimonial,
+} from "@brandevolved/blocks";
+
+/** Loads published testimonials (from public_testimonials) as RenderTestimonial[]. */
+export async function fetchTestimonials(db: any, siteId: string): Promise<RenderTestimonial[]> {
+  const [{ data: rows }, { data: ts }] = await Promise.all([
+    db.from("public_testimonials").select("*").eq("site_id", siteId).order("sort_order"),
+    db.from("testimonial_services").select("testimonial_id, services(slug)").eq("site_id", siteId),
+  ]);
+  const svcByTestimonial = new Map<string, string[]>();
+  for (const row of ts ?? []) {
+    const slug = (row.services as any)?.slug;
+    if (!slug) continue;
+    svcByTestimonial.set(row.testimonial_id, [...(svcByTestimonial.get(row.testimonial_id) ?? []), slug]);
+  }
+  return (rows ?? []).map((t: any) => ({
+    id: t.id,
+    quote: t.quote,
+    short_quote: t.short_quote,
+    display_name: t.display_name,
+    display_role: t.display_role,
+    display_business: t.display_business,
+    display_photo: t.display_photo,
+    client_location: t.client_location,
+    client_website: t.client_website,
+    rating: t.rating == null ? null : Number(t.rating),
+    featured: !!t.featured,
+    service_slugs: svcByTestimonial.get(t.id) ?? [],
+  }));
+}
 
 /** Loads published projects (from public_* views) as RenderProject[]. */
 export async function fetchProjects(db: any, siteId: string): Promise<RenderProject[]> {
@@ -100,6 +135,7 @@ export async function fetchSite(): Promise<SitePayload> {
   if (pagesError) throw new Error(`Failed to fetch pages: ${pagesError.message}`);
 
   const projects = await fetchProjects(db, siteId);
+  const testimonials = await fetchTestimonials(db, siteId);
 
   const collectionMap: Record<string, RenderCollection> = {};
   for (const c of collections ?? []) {
@@ -147,6 +183,7 @@ export async function fetchSite(): Promise<SitePayload> {
       collections: collectionMap,
       forms: formMap,
       projects,
+      testimonials,
     },
   };
 }

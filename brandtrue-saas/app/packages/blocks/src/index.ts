@@ -48,6 +48,22 @@ export interface RenderProject {
   result_type_slugs: string[];
 }
 
+/** A published testimonial, resolved for public rendering (from public_testimonials). */
+export interface RenderTestimonial {
+  id: string;
+  quote: string;
+  short_quote: string | null;
+  display_name: string | null;
+  display_role: string | null;
+  display_business: string | null;
+  display_photo: string | null;
+  client_location: string | null;
+  client_website: string | null;
+  rating: number | null;
+  featured: boolean;
+  service_slugs: string[];
+}
+
 export interface RenderContext {
   siteId: string;
   supabaseUrl: string;
@@ -56,6 +72,8 @@ export interface RenderContext {
   forms: Record<string, RenderForm>;
   /** published projects for portfolio / project-list blocks (optional) */
   projects?: RenderProject[];
+  /** published testimonials for testimonial blocks (optional) */
+  testimonials?: RenderTestimonial[];
   /** true inside the admin visual editor — adds data-* hooks, disables scripts */
   editable?: boolean;
 }

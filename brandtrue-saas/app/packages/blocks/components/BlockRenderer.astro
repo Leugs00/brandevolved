@@ -11,6 +11,13 @@ import FormEmbed from "./FormEmbed.astro";
 import Faq from "./Faq.astro";
 import TestimonialStrip from "./TestimonialStrip.astro";
 import ProjectList from "./ProjectList.astro";
+import SplitHero from "./SplitHero.astro";
+import IntroSplit from "./IntroSplit.astro";
+import IconColumns from "./IconColumns.astro";
+import ProcessSteps from "./ProcessSteps.astro";
+import TestimonialCarousel from "./TestimonialCarousel.astro";
+import ServiceCards from "./ServiceCards.astro";
+import CtaBanner from "./CtaBanner.astro";
 
 interface Props {
   block: RenderBlock;
@@ -31,6 +38,13 @@ const components: Record<string, any> = {
   faq: Faq,
   testimonial_strip: TestimonialStrip,
   project_list: ProjectList,
+  split_hero: SplitHero,
+  intro_split: IntroSplit,
+  icon_columns: IconColumns,
+  process_steps: ProcessSteps,
+  testimonial_carousel: TestimonialCarousel,
+  service_cards: ServiceCards,
+  cta_banner: CtaBanner,
 };
 
 const Component = components[block.kind];

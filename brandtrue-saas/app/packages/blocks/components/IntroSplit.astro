@@ -1,0 +1,89 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const image = data.image ?? {};
+const side = data.image_side === "left" ? "left" : "right";
+const bg = String(data.background ?? "cream");
+const paragraphs = String(data.body ?? "")
+  .split(/\n\s*\n/)
+  .map((p) => p.trim())
+  .filter(Boolean);
+---
+
+<section class:list={["lm-intro", `lm-intro--img-${side}`, `lm-intro--bg-${bg}`]}>
+  <div class="lm-intro__content">
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    <h2 data-field="heading" data-anim>{data.heading}</h2>
+    <span class="lm-intro__rule" aria-hidden="true"></span>
+    <div class="lm-intro__body" data-field="body" data-anim style="--anim-delay:.15s">
+      {paragraphs.map((p) => <p>{p}</p>)}
+    </div>
+    {data.script_line && (
+      <p class="lm-script lm-intro__script" data-field="script_line" data-anim style="--anim-delay:.3s">{data.script_line}</p>
+    )}
+    {(data.cta_label || data.cta2_label) && (
+      <div class="lm-intro__ctas" data-anim style="--anim-delay:.3s">
+        {data.cta_label && (
+          <a class="lm-btn" href={data.cta_href || "#"}>
+            <span data-field="cta_label">{data.cta_label}</span>
+            <span class="lm-btn__arrow" aria-hidden="true">→</span>
+          </a>
+        )}
+        {data.cta2_label && (
+          <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
+            <span data-field="cta2_label">{data.cta2_label}</span>
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+  {image.src && (
+    <div class="lm-intro__media">
+      <img src={image.src} alt={image.alt ?? ""} loading="lazy" />
+    </div>
+  )}
+</section>
+
+<style>
+  .lm-intro {
+    display: grid; grid-template-columns: 1fr 1fr; align-items: center; overflow: hidden;
+  }
+  .lm-intro--bg-cream { background: var(--c-cream); }
+  .lm-intro--bg-white { background: var(--c-bg); }
+  .lm-intro--img-left .lm-intro__media { order: -1; }
+  .lm-intro__content { padding: clamp(2.5rem, 6vw, 5.5rem); max-width: 36rem; justify-self: center; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.6rem); line-height: 1.18; margin: 0; white-space: pre-line;
+  }
+  .lm-intro__rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.4rem 0; }
+  .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
+  .lm-intro__script { text-align: right; margin: 1rem 0 0; font-size: 2.5rem; }
+  .lm-intro--img-left .lm-intro__script { text-align: left; }
+  .lm-intro__ctas { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.6rem; }
+  .lm-intro__media { align-self: stretch; min-height: 24rem; }
+  .lm-intro__media img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    -webkit-mask-image: linear-gradient(95deg, transparent 0%, #000 12%);
+    mask-image: linear-gradient(95deg, transparent 0%, #000 12%);
+  }
+  .lm-intro--img-left .lm-intro__media img {
+    -webkit-mask-image: linear-gradient(265deg, transparent 0%, #000 12%);
+    mask-image: linear-gradient(265deg, transparent 0%, #000 12%);
+  }
+  @media (max-width: 46rem) {
+    .lm-intro { grid-template-columns: 1fr; }
+    .lm-intro__media { order: -1; min-height: 0; }
+    .lm-intro__media img, .lm-intro--img-left .lm-intro__media img {
+      max-height: 22rem;
+      -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+      mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+    }
+  }
+</style>

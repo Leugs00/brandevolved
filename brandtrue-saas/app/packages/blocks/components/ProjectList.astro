@@ -17,10 +17,13 @@ const filtered = filterProjects(all, {
 });
 const limit = Number(data.limit) > 0 ? Number(data.limit) : 12;
 const projects = filtered.slice(0, limit);
+// nothing published yet → render nothing on the live site (editors still see the hint)
+const hidden = projects.length === 0 && !context.editable;
 ---
 
-<section class="be-projects">
-  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+{!hidden && <section class="be-projects">
+  {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+  {data.intro && <p class="be-projects__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
   {projects.length === 0 && context.editable && (
     <p class="be-projects__warn">No published projects match yet — add or publish projects in the Projects section.</p>
   )}
@@ -38,11 +41,15 @@ const projects = filtered.slice(0, limit);
       </article>
     ))}
   </div>
-</section>
+</section>}
 
 <style>
   .be-projects { max-width: 68rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
-  .be-projects h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #201e1f); text-align: center; margin: 0 0 2rem; }
+  .be-projects h2 {
+    font-family: var(--f-heading, Georgia, serif); color: var(--c-primary, #201e1f); font-weight: 600;
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); text-align: center; margin: 0 0 1rem;
+  }
+  .be-projects__intro { max-width: 44rem; margin: 0 auto 2rem; text-align: center; line-height: 1.7; color: var(--c-text, #201e1f); }
   .be-projects__warn { background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
   .be-projects__items--grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1.5rem; }
   .be-projects__items--list { display: flex; flex-direction: column; gap: 1.25rem; }

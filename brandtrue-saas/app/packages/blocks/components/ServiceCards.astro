@@ -1,0 +1,76 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : [];
+---
+
+<section class="lm-services">
+  <div class="lm-services__inner">
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    <h2 data-field="heading" data-anim>{data.heading}</h2>
+    {data.intro && <p class="lm-services__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+    <div class="lm-services__grid">
+      {items.map((item, i) => (
+        <a class="lm-services__card" href={item.href || "#"} data-anim style={`--anim-delay:${0.15 * i}s`}>
+          {item.image?.src && <img src={item.image.src} alt={item.image.alt ?? ""} loading="lazy" />}
+          <div class="lm-services__card-body">
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+            <span class="lm-services__link">{item.link_label || "Learn more"} →</span>
+          </div>
+        </a>
+      ))}
+    </div>
+    {(data.cta_label || data.cta2_label) && (
+      <div class="lm-services__ctas" data-anim>
+        {data.cta_label && (
+          <a class="lm-btn" href={data.cta_href || "#"}>
+            <span data-field="cta_label">{data.cta_label}</span>
+            <span class="lm-btn__arrow" aria-hidden="true">→</span>
+          </a>
+        )}
+        {data.cta2_label && (
+          <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
+            <span data-field="cta2_label">{data.cta2_label}</span>
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .lm-services { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-cream); }
+  .lm-services__inner { max-width: 72rem; margin: 0 auto; text-align: center; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); margin: 0 0 1rem;
+  }
+  .lm-services__intro { max-width: 44rem; margin: 0 auto; line-height: 1.75; }
+  .lm-services__grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.8rem; margin-top: 2.5rem;
+  }
+  .lm-services__card {
+    background: var(--c-bg); border-radius: 1rem; overflow: hidden; text-decoration: none;
+    color: var(--c-text); text-align: left; display: flex; flex-direction: column;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .lm-services__card:hover { transform: translateY(-5px); box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12); }
+  .lm-services__card img { width: 100%; height: 13rem; object-fit: cover; display: block; }
+  .lm-services__card-body { padding: 1.5rem; display: flex; flex-direction: column; flex: 1; }
+  h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.4rem; margin: 0 0 0.6rem; }
+  .lm-services__card-body p { line-height: 1.65; font-size: 0.93rem; margin: 0 0 1.2rem; }
+  .lm-services__link {
+    margin-top: auto; color: var(--c-accent); font-weight: 700; font-size: 0.82rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .lm-services__ctas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2.5rem; }
+</style>

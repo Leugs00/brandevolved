@@ -3,6 +3,18 @@ export interface SiteSettings {
   navigation?: { label: string; href: string }[];
   theme?: Record<string, string>;
   footer_text?: string;
+  /** Text logo rendered in the logo font (or an image url). */
+  logo?: { text?: string; image?: string };
+  /** Pill button at the right of the header. */
+  header_cta?: { label: string; href: string };
+  /** Rich footer. Falls back to the simple footer_text line. */
+  footer?: {
+    blurb?: string;
+    locations?: string;
+    links?: { label: string; href: string }[];
+  };
+  /** Self-hosted fonts registered as @font-face. */
+  fonts?: { family: string; url: string; weight?: string; style?: string }[];
 }
 
 interface Props {
@@ -16,15 +28,30 @@ interface Props {
 const { siteName, title, description, settings, currentPath } = Astro.props;
 const theme = settings.theme ?? {};
 const nav = settings.navigation ?? [];
+const logo = settings.logo ?? {};
+const headerCta = settings.header_cta;
+const footer = settings.footer;
+const fonts = settings.fonts ?? [];
 
 const themeVars = [
   `--c-primary:${theme.primary ?? "#008378"}`,
-  `--c-accent:${theme.accent ?? "#f59e0b"}`,
+  `--c-primary-deep:${theme.primary_deep ?? theme.primary ?? "#0a5c52"}`,
+  `--c-accent:${theme.accent ?? "#b79762"}`,
   `--c-bg:${theme.background ?? "#ffffff"}`,
+  `--c-cream:${theme.cream ?? "#f8f3ec"}`,
   `--c-text:${theme.text ?? "#1f2937"}`,
   `--f-heading:${theme.font_heading ?? "Georgia, serif"}`,
   `--f-body:${theme.font_body ?? "system-ui, sans-serif"}`,
+  `--f-script:${theme.font_script ?? "cursive"}`,
+  `--f-logo:${theme.font_logo ?? theme.font_heading ?? "Georgia, serif"}`,
 ].join(";");
+
+const fontFaceCss = fonts
+  .map(
+    (f) =>
+      `@font-face{font-family:"${f.family}";src:url("${f.url}") format("woff2");font-weight:${f.weight ?? "normal"};font-style:${f.style ?? "normal"};font-display:swap;}`,
+  )
+  .join("\n");
 ---
 
 <html lang="en" style={themeVars}>
@@ -33,45 +60,176 @@ const themeVars = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
+    {theme.google_fonts && (
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href={theme.google_fonts} />
+      </>
+    )}
+    {fontFaceCss && <style set:html={fontFaceCss} />}
     <slot name="head" />
   </head>
   <body>
     <header class="site-header">
-      <a class="site-header__brand" href="/">{siteName}</a>
+      <a class="site-header__brand" href="/" aria-label={siteName}>
+        {logo.image ? (
+          <img src={logo.image} alt={siteName} class="site-header__logo-img" />
+        ) : logo.text ? (
+          <span class="site-header__logo-text">{logo.text}</span>
+        ) : (
+          siteName
+        )}
+      </a>
       <nav>
         {nav.map((item) => (
           <a href={item.href} class:list={{ active: item.href === currentPath }}>{item.label}</a>
         ))}
+        {headerCta?.label && (
+          <a class="site-header__cta" href={headerCta.href}>{headerCta.label}</a>
+        )}
       </nav>
     </header>
     <main><slot /></main>
-    <footer class="site-footer">
-      <p>{settings.footer_text ?? `© ${new Date().getFullYear()} ${siteName}`}</p>
-    </footer>
+    {footer ? (
+      <footer class="site-footer site-footer--rich">
+        <div class="site-footer__inner">
+          <div class="site-footer__brand">
+            {logo.image ? (
+              <img src={logo.image} alt={siteName} class="site-footer__logo-img" />
+            ) : (
+              <span class="site-footer__logo-text">{logo.text ?? siteName}</span>
+            )}
+            {footer.blurb && <p class="site-footer__blurb">{footer.blurb}</p>}
+            {footer.locations && <p class="site-footer__locations">{footer.locations}</p>}
+          </div>
+          <nav class="site-footer__links" aria-label="Footer">
+            {(footer.links ?? nav).map((item) => (
+              <a href={item.href}>{item.label}</a>
+            ))}
+          </nav>
+        </div>
+        <p class="site-footer__legal">{settings.footer_text ?? `© ${new Date().getFullYear()} ${siteName}`}</p>
+      </footer>
+    ) : (
+      <footer class="site-footer">
+        <p>{settings.footer_text ?? `© ${new Date().getFullYear()} ${siteName}`}</p>
+      </footer>
+    )}
     <slot name="body-end" />
+    <script is:inline>
+      // Scroll-in animation runtime. Content stays visible without JS
+      // (the hiding styles only apply under html.js) and under
+      // prefers-reduced-motion everything renders instantly.
+      document.documentElement.classList.add("js");
+      (function () {
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var els = document.querySelectorAll("[data-anim]");
+        if (reduce || !("IntersectionObserver" in window)) {
+          els.forEach(function (el) { el.classList.add("in"); });
+          return;
+        }
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) {
+                e.target.classList.add("in");
+                io.unobserve(e.target);
+              }
+            });
+          },
+          { rootMargin: "0px 0px -10% 0px", threshold: 0.15 },
+        );
+        els.forEach(function (el) { io.observe(el); });
+      })();
+    </script>
   </body>
 </html>
 
 <style is:global>
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--c-bg, #fff); }
+  body { margin: 0; background: var(--c-bg, #fff); font-family: var(--f-body, system-ui, sans-serif); color: var(--c-text, #1f2937); }
+  img { max-width: 100%; }
+
+  /* ── shared design language for blocks ── */
+  .lm-eyebrow {
+    display: inline-block; font-family: var(--f-body); font-size: 0.8rem; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-primary);
+    border-bottom: 2px solid var(--c-accent); padding-bottom: 0.5rem; margin: 0 0 1.2rem;
+  }
+  .lm-script { font-family: var(--f-script); color: var(--c-accent); font-size: 1.9rem; line-height: 1.2; }
+  .lm-btn {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    background: var(--c-accent); color: #fff; text-decoration: none;
+    font-family: var(--f-body); font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 0.95rem 1.9rem; border-radius: 999px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .lm-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16); }
+  .lm-btn--outline { background: transparent; color: var(--c-primary); box-shadow: inset 0 0 0 2px var(--c-primary); }
+  .lm-btn--outline:hover { background: var(--c-primary); color: #fff; }
+  .lm-btn__arrow { font-size: 1rem; line-height: 1; }
+
+  /* ── scroll-in animations (JS adds .in; hidden state only when html.js) ── */
+  html.js [data-anim] {
+    opacity: 0; transform: translateY(22px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+    transition-delay: var(--anim-delay, 0s);
+  }
+  html.js [data-anim].in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html.js [data-anim] { opacity: 1; transform: none; transition: none; }
+  }
 </style>
 
 <style>
   .site-header {
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
-    padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.9rem;
+    padding: 1.1rem clamp(1.25rem, 4vw, 3rem);
     font-family: var(--f-body, system-ui, sans-serif); background: var(--c-bg, #fff);
+    position: relative; z-index: 5;
   }
-  .site-header__brand {
-    font-family: var(--f-heading, Georgia, serif); font-size: 1.3rem; font-weight: 700;
-    color: var(--c-primary, #008378); text-decoration: none;
+  .site-header__brand { text-decoration: none; }
+  .site-header__logo-img { height: 3.4rem; width: auto; display: block; }
+  .site-header__logo-text {
+    font-family: var(--f-logo); font-size: 2.1rem; line-height: 0.9; color: var(--c-primary);
   }
-  nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
-  nav a { color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.95rem; }
+  nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); }
+  nav a {
+    color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.82rem;
+    font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  }
   nav a.active, nav a:hover { color: var(--c-primary, #008378); }
+  nav a.site-header__cta {
+    background: var(--c-accent); color: #fff; padding: 0.7rem 1.5rem; border-radius: 999px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  nav a.site-header__cta:hover { color: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+
   .site-footer {
     border-top: 1px solid #e5e7eb; padding: 1.5rem; text-align: center;
     color: #6b7280; font-size: 0.9rem; font-family: var(--f-body, system-ui, sans-serif);
+  }
+  .site-footer--rich {
+    border-top: none; background: var(--c-primary-deep, #0a5c52); color: #eef4f2; text-align: left;
+    padding: 3.5rem clamp(1.25rem, 4vw, 3rem) 1.5rem;
+  }
+  .site-footer__inner {
+    max-width: 72rem; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: space-between;
+  }
+  .site-footer__brand { max-width: 26rem; }
+  .site-footer__logo-img { height: 3rem; width: auto; }
+  .site-footer__logo-text { font-family: var(--f-logo); font-size: 2rem; color: #fff; }
+  .site-footer__blurb { margin: 1rem 0 0.5rem; line-height: 1.65; font-size: 0.95rem; }
+  .site-footer__locations { margin: 0; font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); line-height: 1.6; }
+  .site-footer__links { display: flex; flex-direction: column; gap: 0.55rem; }
+  .site-footer__links a {
+    color: #eef4f2; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .site-footer__links a:hover { color: var(--c-accent); }
+  .site-footer__legal {
+    max-width: 72rem; margin: 2.5rem auto 0; padding-top: 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.16); font-size: 0.8rem; color: rgba(255, 255, 255, 0.6);
   }
 </style>
