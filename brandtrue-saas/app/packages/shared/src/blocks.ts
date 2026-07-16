@@ -530,6 +530,42 @@ export const blockDefs: Record<string, BlockDef> = {
       .passthrough(),
     defaults: { heading: "Ready to get started?", buttons: [{ label: "Book a call", href: "/book" }] },
   },
+  device_carousel: {
+    kind: "device_carousel",
+    label: "Device screenshot carousel",
+    description: "A photo of a device (iPad, laptop) whose screen cycles through website screenshots — arrows at the sides, dots below. The background photo never changes.",
+    fields: {
+      heading: { type: "text", label: "Heading", help: "E.g. See our work." },
+      intro: { type: "text", label: "Intro text", help: "Optional sentence under the heading." },
+      bg_image: { type: "image", label: "Device photo", help: "The photo containing the blank device screen the slides appear inside." },
+      slides: {
+        type: "list",
+        label: "Screenshots",
+        help: "One per website. They appear inside the device screen in this order.",
+        item: {
+          image: { type: "image", label: "Screenshot", help: "A screenshot of the website's top fold." },
+          label: { type: "text", label: "Name", help: "Which site this is (used for accessibility)." },
+        },
+      },
+      screen_left: { type: "number", label: "Screen left (%)", help: "Where the device screen starts from the photo's left edge. Fine-tune if slides don't sit exactly on the screen." },
+      screen_top: { type: "number", label: "Screen top (%)", help: "Where the screen starts from the top of the photo." },
+      screen_width: { type: "number", label: "Screen width (%)", help: "Screen width as a share of the photo width." },
+      screen_height: { type: "number", label: "Screen height (%)", help: "Screen height as a share of the photo height." },
+    },
+    schema: z
+      .object({
+        heading: z.string().default(""),
+        intro: z.string().default(""),
+        bg_image: image,
+        slides: z.array(z.object({ image, label: z.string().default("") })).default([]),
+        screen_left: z.number().default(34.85),
+        screen_top: z.number().default(27.7),
+        screen_width: z.number().default(29.45),
+        screen_height: z.number().default(42.1),
+      })
+      .passthrough(),
+    defaults: { heading: "See our work.", slides: [], screen_left: 34.85, screen_top: 27.7, screen_width: 29.45, screen_height: 42.1 },
+  },
 };
 
 export const blockKinds = Object.keys(blockDefs);

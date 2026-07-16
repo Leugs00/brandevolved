@@ -18,6 +18,7 @@ import ProcessSteps from "./ProcessSteps.astro";
 import TestimonialCarousel from "./TestimonialCarousel.astro";
 import ServiceCards from "./ServiceCards.astro";
 import CtaBanner from "./CtaBanner.astro";
+import DeviceCarousel from "./DeviceCarousel.astro";
 
 interface Props {
   block: RenderBlock;
@@ -45,6 +46,7 @@ const components: Record<string, any> = {
   testimonial_carousel: TestimonialCarousel,
   service_cards: ServiceCards,
   cta_banner: CtaBanner,
+  device_carousel: DeviceCarousel,
 };
 
 const Component = components[block.kind];

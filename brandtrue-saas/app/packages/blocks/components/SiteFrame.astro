@@ -6,7 +6,7 @@ export interface SiteSettings {
   /** Text logo rendered in the logo font (or an image url). `texture_image`
    *  fills the letters with a texture; `size: "large"` makes it a stacked
    *  hero-style logo. */
-  logo?: { text?: string; image?: string; texture_image?: string; size?: "normal" | "large" };
+  logo?: { text?: string; image?: string; footer_image?: string; texture_image?: string; size?: "normal" | "large" };
   /** "overlay" floats a transparent header over the first section. */
   header_style?: "solid" | "overlay";
   /** Pill button at the right of the header. */
@@ -109,8 +109,8 @@ const fontFaceCss = fonts
       <footer class="site-footer site-footer--rich">
         <div class="site-footer__inner">
           <div class="site-footer__brand">
-            {logo.image ? (
-              <img src={logo.image} alt={siteName} class="site-footer__logo-img" />
+            {logo.footer_image || logo.image ? (
+              <img src={logo.footer_image || logo.image} alt={siteName} class="site-footer__logo-img" />
             ) : (
               <span class="site-footer__logo-text">{logo.text ?? siteName}</span>
             )}
@@ -228,7 +228,7 @@ const fontFaceCss = fonts
   }
   .site-header__brand { text-decoration: none; }
   .site-header__logo-img { height: 3.4rem; width: auto; display: block; }
-  .site-header__logo-img--large { height: 7.5rem; }
+  .site-header__logo-img--large { height: clamp(7rem, 12vw, 10.5rem); margin: -1rem 0 0 -1rem; }
   .site-header__logo-text {
     font-family: var(--f-logo); font-size: 2.1rem; line-height: 0.9; color: var(--c-primary);
   }
@@ -297,7 +297,7 @@ const fontFaceCss = fonts
     max-width: 72rem; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: space-between;
   }
   .site-footer__brand { max-width: 26rem; }
-  .site-footer__logo-img { height: 3rem; width: auto; }
+  .site-footer__logo-img { height: 5rem; width: auto; }
   .site-footer__logo-text { font-family: var(--f-logo); font-size: 2rem; color: #fff; }
   .site-footer__blurb { margin: 1rem 0 0.5rem; line-height: 1.65; font-size: 0.95rem; }
   .site-footer__locations { margin: 0; font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); line-height: 1.6; }
