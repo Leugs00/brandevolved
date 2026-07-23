@@ -101,10 +101,10 @@ const quoteIcon = data.quote_icon ?? {};
   .lm-quotes__card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1); }
   /* large, faded quote mark as a background motif on the upper-left of the card */
   .lm-quotes__mark {
-    position: absolute; top: -0.8rem; left: -0.4rem; z-index: 0;
-    height: 8.5rem; width: auto; opacity: 0.38; pointer-events: none;
+    position: absolute; top: -1rem; left: -0.8rem; z-index: 0;
+    height: 10rem; width: auto; opacity: 0.22; pointer-events: none;
   }
-  .lm-quotes__mark--text { font-family: var(--f-heading); color: var(--c-accent); font-size: 8.5rem; line-height: 0.8; height: auto; opacity: 0.5; }
+  .lm-quotes__mark--text { font-family: var(--f-heading); color: var(--c-accent); font-size: 10rem; line-height: 0.8; height: auto; opacity: 0.3; }
   .lm-quotes__card > *:not(.lm-quotes__mark) { position: relative; z-index: 1; }
   .lm-quotes__stars { color: var(--c-accent); letter-spacing: 0.2em; margin: 0 0 0.6rem; }
   h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.2rem; line-height: 1.3; margin: 0 0 0.7rem; }
@@ -113,8 +113,11 @@ const quoteIcon = data.quote_icon ?? {};
     display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
   }
   .lm-quotes__card:hover .lm-quotes__quote { -webkit-line-clamp: unset; }
-  footer { margin-top: auto; display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; color: #5b6b68; }
-  footer strong { color: var(--c-text); font-size: 0.95rem; }
+  footer { margin-top: auto; display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.85rem; color: #5b6b68; }
+  footer strong {
+    font-family: var(--f-script); font-weight: 100 !important; -webkit-font-smoothing: antialiased;
+    color: var(--c-accent); font-size: 1.9rem; line-height: 1.1; text-transform: lowercase;
+  }
   .lm-quotes__loc { font-size: 0.78rem; }
   .lm-quotes__nav {
     position: absolute; top: 40%; z-index: 2; width: 2.6rem; height: 2.6rem; border-radius: 999px;

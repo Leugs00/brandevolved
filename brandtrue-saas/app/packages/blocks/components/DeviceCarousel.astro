@@ -16,10 +16,11 @@ const left = Number(data.screen_left ?? 35.35);
 const top = Number(data.screen_top ?? 28.56);
 const width = Number(data.screen_width ?? 28.83);
 const height = Number(data.screen_height ?? 40.23);
-// the screenshot layer sits BEHIND the device photo, expanded a touch so the
-// bezel overlaps its (square) edges — no rounded corners needed on the shot.
-const oh = Number(data.overhang ?? 1.6); // % expansion each side
-const screenStyle = `left:${left - oh}%;top:${top - oh}%;width:${width + oh * 2}%;height:${height + oh * 2}%`;
+// the screenshot layer sits BEHIND the device photo, expanded a touch on the
+// sides + bottom so the bezel overlaps its (square) edges. The top stays at the
+// glass line so the site header at the top of each screenshot isn't clipped.
+const oh = Number(data.overhang ?? 1.6); // % expansion
+const screenStyle = `left:${left - oh}%;top:${top}%;width:${width + oh * 2}%;height:${height + oh}%`;
 ---
 
 <section class="lm-device">

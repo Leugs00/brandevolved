@@ -8,6 +8,18 @@ interface Props {
 
 const { data } = Astro.props;
 const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : [];
+
+// Build up to 3 crossfading cells from a card's rotating photos.
+function cellsFor(item: Record<string, any>) {
+  const rotators = (Array.isArray(item.images) ? item.images : [])
+    .map((im: any) => im?.photo ?? im)
+    .filter((im: any) => im?.src);
+  if (rotators.length < 2) return null;
+  const count = Math.min(3, rotators.length);
+  const cells: any[][] = Array.from({ length: count }, () => []);
+  rotators.forEach((im: any, i: number) => cells[i % count].push(im));
+  return cells;
+}
 ---
 
 <section class="lm-services">
@@ -17,23 +29,28 @@ const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : []
     {data.intro && <p class="lm-services__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
     <div class="lm-services__grid">
       {items.map((item, i) => {
-        const rotators = (Array.isArray(item.images) ? item.images : [])
-          .map((im: any) => im?.photo ?? im)
-          .filter((im: any) => im?.src);
-        const stack = rotators.length > 0 ? rotators : item.image?.src ? [item.image] : [];
+        const cells = cellsFor(item);
         return (
         <a class="lm-services__card" href={item.href || "#"} data-anim style={`--anim-delay:${0.15 * i}s`}>
-          {stack.length > 0 && (
-            <div class:list={["lm-services__media", { "lm-services__media--rotate": stack.length > 1 }]}>
-              {stack.map((im: any, j: number) => (
-                <img class:list={{ active: j === 0 }} src={im.src} alt={im.alt ?? item.title ?? ""} loading="lazy" data-index={j} />
-              ))}
-            </div>
-          )}
+          <div class="lm-services__media">
+            {cells ? (
+              <div class="lm-services__montage" style={`--cells:${cells.length}`}>
+                {cells.map((cellImgs) => (
+                  <div class="lm-services__cell">
+                    {cellImgs.map((im: any, j: number) => (
+                      <img class:list={{ active: j === 0 }} src={im.src} alt={im.alt ?? item.title ?? ""} loading="lazy" />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              item.image?.src && <img class="lm-services__single" src={item.image.src} alt={item.image.alt ?? item.title ?? ""} loading="lazy" />
+            )}
+          </div>
           <div class="lm-services__card-body">
             <h3>{item.title}</h3>
             <p>{item.body}</p>
-            <span class="lm-services__link">{item.link_label || "Learn more"} →</span>
+            <span class="lm-services__link">{item.link_label || "Learn more"} <span class="lm-services__link-arrow" aria-hidden="true">→</span></span>
           </div>
         </a>
         );
@@ -48,8 +65,9 @@ const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : []
           </a>
         )}
         {data.cta2_label && (
-          <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
-            <span data-field="cta2_label">{data.cta2_label}</span>
+          <a class="lm-rise lm-services__cta2" href={data.cta2_href || "#"}>
+            <span class="lm-secondary" data-field="cta2_label">{data.cta2_label}</span>
+            <span class="lm-rise__arrow lm-rise__arrow--glyph" aria-hidden="true">→</span>
           </a>
         )}
       </div>
@@ -58,29 +76,21 @@ const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : []
 </section>
 
 <script>
-  // auto-rotate the stacked images inside any service card that has several
-  document.querySelectorAll<HTMLElement>(".lm-services__media--rotate").forEach((media, k) => {
-    const imgs = [...media.querySelectorAll<HTMLElement>("img")];
+  // each montage cell independently crossfades through its photos, staggered
+  document.querySelectorAll<HTMLElement>(".lm-services__cell").forEach((cell, k) => {
+    const imgs = [...cell.querySelectorAll<HTMLElement>("img")];
     if (imgs.length < 2) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let i = 0;
     setInterval(() => {
       imgs[i].classList.remove("active");
       i = (i + 1) % imgs.length;
       imgs[i].classList.add("active");
-    }, 3200 + k * 400);
+    }, 3400 + k * 900);
   });
 </script>
 
 <style>
-  .lm-services__media { position: relative; width: 100%; height: 13rem; }
-  .lm-services__media img {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
-    opacity: 0; transition: opacity 0.8s ease;
-  }
-  .lm-services__media img.active { opacity: 1; }
-  .lm-services__media:not(.lm-services__media--rotate) img { position: static; opacity: 1; }
   .lm-services { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-cream); }
   .lm-services__inner { max-width: 72rem; margin: 0 auto; text-align: center; }
   h2 {
@@ -95,17 +105,38 @@ const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : []
   .lm-services__card {
     background: var(--c-bg); border-radius: 1rem; overflow: hidden; text-decoration: none;
     color: var(--c-text); text-align: left; display: flex; flex-direction: column;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05); will-change: transform;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
-  .lm-services__card:hover { transform: translateY(-5px); box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12); }
-  .lm-services__card img { width: 100%; height: 13rem; object-fit: cover; display: block; }
+  .lm-services__card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14); }
+
+  /* media area — single image or a 16:9 montage of crossfading cells */
+  .lm-services__media { width: 100%; height: 13rem; }
+  .lm-services__single { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .lm-services__montage {
+    display: grid; grid-template-columns: repeat(var(--cells, 3), 1fr);
+    gap: 3px; width: 100%; height: 100%; background: #fff;
+  }
+  .lm-services__cell { position: relative; overflow: hidden; }
+  .lm-services__cell img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+    opacity: 0; transition: opacity 1s ease;
+  }
+  .lm-services__cell img.active { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .lm-services__cell img { transition: none; } }
+
   .lm-services__card-body { padding: 1.5rem; display: flex; flex-direction: column; flex: 1; }
   h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.4rem; margin: 0 0 0.6rem; }
   .lm-services__card-body p { line-height: 1.65; font-size: 0.93rem; margin: 0 0 1.2rem; }
   .lm-services__link {
     margin-top: auto; color: var(--c-accent); font-weight: 700; font-size: 0.82rem;
-    letter-spacing: 0.12em; text-transform: uppercase;
+    letter-spacing: 0.12em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.4rem;
   }
-  .lm-services__ctas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2.5rem; }
+  .lm-services__link-arrow { transition: transform 0.2s ease; }
+  /* the whole card is the link — animate the "learn more" arrow on card hover */
+  .lm-services__card:hover .lm-services__link-arrow { transform: translateX(5px); }
+  .lm-services__card:hover .lm-services__link { color: var(--c-primary); }
+
+  .lm-services__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; justify-content: center; margin-top: 2.5rem; }
+  .lm-rise__arrow--glyph { transform: none; font-size: 1.1rem; color: var(--c-primary); }
 </style>

@@ -90,18 +90,20 @@ const fontFaceCss = fonts
           siteName
         )}
       </a>
-      <nav id="site-nav">
-        {nav.map((item) => (
-          <a href={item.href} class:list={{ active: item.href === currentPath }}>{item.label}</a>
-        ))}
-      </nav>
-      <div class="site-header__actions">
-        {headerCta?.label && (
-          <a class="site-header__cta" href={headerCta.href}>{headerCta.label}</a>
-        )}
-        <button class="site-header__burger" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Menu">
-          <span></span><span></span><span></span>
-        </button>
+      <div class="site-header__bar">
+        <nav id="site-nav">
+          {nav.map((item) => (
+            <a href={item.href} class:list={{ active: item.href === currentPath }}>{item.label}</a>
+          ))}
+        </nav>
+        <div class="site-header__actions">
+          {headerCta?.label && (
+            <a class="site-header__cta" href={headerCta.href}>{headerCta.label}</a>
+          )}
+          <button class="site-header__burger" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
       </div>
     </header>
     <main><slot /></main>
@@ -187,9 +189,27 @@ const fontFaceCss = fonts
     font-family: var(--f-script);
     font-weight: 100 !important; /* Ballomont ships Regular only — kill browser faux-bold */
     -webkit-font-smoothing: antialiased;
-    color: var(--c-accent); font-size: 2.4rem; line-height: 1.25;
+    color: var(--c-accent); font-size: clamp(2.4rem, 4vw, 3.1rem); line-height: 1.2;
     text-transform: lowercase; /* all script phrases render lowercase */
   }
+
+  /* Secondary action = text label + arrow that rise together on hover; for the
+     link variant the label underlines on hover (no underline at rest).
+     Reused across sections — see docs/design-notes.md. */
+  .lm-rise {
+    display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+  .lm-rise:hover { transform: translateY(-4px); }
+  /* the wrapper does the lifting — stop the inner button lifting again on its own */
+  .lm-rise:hover .lm-btn { transform: none; }
+  .lm-rise__arrow { height: 2.4rem; width: auto; transform: rotate(90deg); flex: 0 0 auto; }
+  .lm-secondary {
+    color: var(--c-primary); font-family: var(--f-body); font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    border-bottom: 2px solid transparent; padding-bottom: 2px; transition: border-color 0.2s ease;
+  }
+  .lm-rise:hover .lm-secondary { border-bottom-color: var(--c-accent); }
   .lm-btn {
     display: inline-flex; align-items: center; gap: 0.6rem;
     background: var(--c-accent); color: #fff; text-decoration: none;
@@ -222,11 +242,13 @@ const fontFaceCss = fonts
     font-family: var(--f-body, system-ui, sans-serif); background: var(--c-bg, #fff);
     position: relative; z-index: 5;
   }
+  /* right-hand group: nav links + actions share one vertical centre line so the
+     menu items align with the middle of the Book a Consult button */
+  .site-header__bar { display: flex; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); margin-left: auto; }
   .site-header--overlay {
     position: absolute; top: 0; left: 0; right: 0; background: transparent;
-    align-items: flex-start; padding-top: 1.4rem;
+    align-items: flex-start; padding-top: 1.6rem;
   }
-  .site-header--overlay nav { padding-top: 0.9rem; }
   @media (max-width: 46rem) {
     /* keep nav readable when the overlay sits on a photo */
     .site-header--overlay {
@@ -236,7 +258,8 @@ const fontFaceCss = fonts
   }
   .site-header__brand { text-decoration: none; }
   .site-header__logo-img { height: 3.4rem; width: auto; display: block; }
-  .site-header__logo-img--large { height: clamp(8rem, 13vw, 12rem); margin: -1rem 0 0 -0.5rem; }
+  /* width:auto keeps the aspect ratio — no distortion */
+  .site-header__logo-img--large { height: clamp(9rem, 14vw, 13.5rem); width: auto; margin: -1rem 0 0 -0.5rem; }
   .site-header__logo-text {
     font-family: var(--f-logo); font-size: 2.1rem; line-height: 0.9; color: var(--c-primary);
   }
@@ -250,14 +273,13 @@ const fontFaceCss = fonts
     -webkit-background-clip: text; background-clip: text;
     color: transparent; -webkit-text-fill-color: transparent;
   }
-  nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); margin-left: auto; }
+  nav { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); }
   nav a {
     color: var(--c-text, #1f2937); text-decoration: none; font-size: 0.82rem;
     font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
   }
   nav a.active, nav a:hover { color: var(--c-primary, #008378); }
   .site-header__actions { display: flex; align-items: center; gap: 0.9rem; }
-  .site-header--overlay .site-header__actions { padding-top: 0.5rem; }
   .site-header__cta {
     text-decoration: none; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
     background: var(--c-accent); color: #fff; padding: 0.7rem 1.5rem; border-radius: 999px;
@@ -310,7 +332,7 @@ const fontFaceCss = fonts
   }
   .site-footer__brand { max-width: 26rem; }
   .site-footer__logo-link { display: inline-block; }
-  .site-footer__logo-img { height: 6.5rem; width: auto; display: block; }
+  .site-footer__logo-img { height: 8.5rem; width: auto; display: block; }
   .site-footer__logo-text { font-family: var(--f-logo); font-size: 2rem; color: #fff; }
   .site-footer__blurb { margin: 1rem 0 0.5rem; line-height: 1.65; font-size: 0.95rem; }
   .site-footer__locations { margin: 0; font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); line-height: 1.6; }

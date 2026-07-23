@@ -45,20 +45,30 @@ const paragraphs = String(data.body ?? "")
     {(data.cta_label || data.cta2_label) && (
       <div class="lm-intro__ctas" data-anim style="--anim-delay:.3s">
         {data.cta_label && (
-          <a class="lm-btn" href={data.cta_href || "#"}>
-            <span data-field="cta_label">{data.cta_label}</span>
-          </a>
+          data.cta2_label ? (
+            <a class="lm-btn" href={data.cta_href || "#"}>
+              <span data-field="cta_label">{data.cta_label}</span>
+            </a>
+          ) : (
+            // no secondary → the arrow rides with the primary button
+            <a class="lm-rise" href={data.cta_href || "#"}>
+              <span class="lm-btn"><span data-field="cta_label">{data.cta_label}</span></span>
+              {data.arrow_image?.src && <img class="lm-rise__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />}
+            </a>
+          )
         )}
         {data.cta2_label && (
-          <a
-            class:list={["lm-intro__cta2", data.cta2_style === "link" ? "lm-link-raise" : "lm-btn lm-btn--outline"]}
-            href={data.cta2_href || "#"}
-          >
-            <span data-field="cta2_label">{data.cta2_label}</span>
-          </a>
-        )}
-        {data.arrow_image?.src && (
-          <img class="lm-intro__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />
+          data.cta2_style === "link" ? (
+            // secondary text link: underline + rise (with arrow) on hover
+            <a class="lm-rise" href={data.cta2_href || "#"}>
+              <span class="lm-secondary" data-field="cta2_label">{data.cta2_label}</span>
+              {data.arrow_image?.src && <img class="lm-rise__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />}
+            </a>
+          ) : (
+            <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
+              <span data-field="cta2_label">{data.cta2_label}</span>
+            </a>
+          )
         )}
       </div>
     )}
@@ -115,36 +125,28 @@ const paragraphs = String(data.body ?? "")
   }
   .lm-intro__rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.4rem 0; }
   .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
-  .lm-intro__script { text-align: right; margin: 1rem 0 0; font-size: 2.5rem; }
-  .lm-intro--img-left .lm-intro__script { text-align: left; }
-  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; margin-top: 1.6rem; }
-  /* secondary CTA as a text link that lifts + shadows on hover (not a filled button) */
-  .lm-link-raise {
-    display: inline-block; color: var(--c-primary); text-decoration: none;
-    font-family: var(--f-body); font-size: 0.82rem; font-weight: 700;
-    letter-spacing: 0.14em; text-transform: uppercase;
-    padding: 0.5rem 0.4rem; border-bottom: 2px solid var(--c-accent);
-    transition: transform 0.2s ease, text-shadow 0.2s ease;
-  }
-  .lm-link-raise:hover { transform: translateY(-3px); text-shadow: 0 6px 14px rgba(0, 0, 0, 0.18); }
+  .lm-intro__script { text-align: right; margin: 1rem -0.5rem 0 0; }
+  .lm-intro--img-left .lm-intro__script { text-align: left; margin-right: 0; }
+  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: 1.6rem; }
 
   /* full-bleed background variant (text in a left container over the photo) */
   .lm-intro--fullbg {
     display: block; background: var(--fullbg) center / cover no-repeat; min-height: 34rem;
     display: flex; align-items: center;
   }
+  /* text sits directly on the photo's empty (left) space — no panel */
   .lm-intro--fullbg .lm-intro__content {
     max-width: 34rem; justify-self: start; margin: clamp(2rem, 5vw, 4rem) 0 clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
-    background: linear-gradient(105deg, rgba(248,243,236,0.92) 55%, rgba(248,243,236,0));
-    border-radius: 0.5rem;
   }
   @media (max-width: 46rem) {
+    .lm-intro--fullbg {
+      background-position: 72% center;
+    }
     .lm-intro--fullbg .lm-intro__content {
       margin: 0; max-width: none;
-      background: linear-gradient(180deg, rgba(248,243,236,0.94) 70%, rgba(248,243,236,0.7));
+      background: linear-gradient(180deg, rgba(248,243,236,0.92) 72%, rgba(248,243,236,0.55));
     }
   }
-  .lm-intro__arrow { height: 2.5rem; width: auto; transform: rotate(90deg); margin-left: -0.2rem; }
   .lm-intro__media { align-self: stretch; min-height: 24rem; }
   /* framed: polaroid-style photo with a handwritten caption on the bottom border */
   .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.25rem, 3vw, 2.5rem); }
