@@ -109,11 +109,13 @@ const fontFaceCss = fonts
       <footer class="site-footer site-footer--rich">
         <div class="site-footer__inner">
           <div class="site-footer__brand">
-            {logo.footer_image || logo.image ? (
-              <img src={logo.footer_image || logo.image} alt={siteName} class="site-footer__logo-img" />
-            ) : (
-              <span class="site-footer__logo-text">{logo.text ?? siteName}</span>
-            )}
+            <a class="site-footer__logo-link" href="/" aria-label={`${siteName} — home`}>
+              {logo.footer_image || logo.image ? (
+                <img src={logo.footer_image || logo.image} alt={siteName} class="site-footer__logo-img" />
+              ) : (
+                <span class="site-footer__logo-text">{logo.text ?? siteName}</span>
+              )}
+            </a>
             {footer.blurb && <p class="site-footer__blurb">{footer.blurb}</p>}
             {footer.locations && <p class="site-footer__locations">{footer.locations}</p>}
           </div>
@@ -181,7 +183,13 @@ const fontFaceCss = fonts
     letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-primary);
     border-bottom: 2px solid var(--c-accent); padding-bottom: 0.5rem; margin: 0 0 1.2rem;
   }
-  .lm-script { font-family: var(--f-script); font-weight: 100; color: var(--c-accent); font-size: 1.9rem; line-height: 1.2; }
+  .lm-script {
+    font-family: var(--f-script);
+    font-weight: 100 !important; /* Ballomont ships Regular only — kill browser faux-bold */
+    -webkit-font-smoothing: antialiased;
+    color: var(--c-accent); font-size: 2.4rem; line-height: 1.25;
+    text-transform: lowercase; /* all script phrases render lowercase */
+  }
   .lm-btn {
     display: inline-flex; align-items: center; gap: 0.6rem;
     background: var(--c-accent); color: #fff; text-decoration: none;
@@ -228,7 +236,7 @@ const fontFaceCss = fonts
   }
   .site-header__brand { text-decoration: none; }
   .site-header__logo-img { height: 3.4rem; width: auto; display: block; }
-  .site-header__logo-img--large { height: clamp(7rem, 12vw, 10.5rem); margin: -1rem 0 0 -1rem; }
+  .site-header__logo-img--large { height: clamp(8rem, 13vw, 12rem); margin: -1rem 0 0 -0.5rem; }
   .site-header__logo-text {
     font-family: var(--f-logo); font-size: 2.1rem; line-height: 0.9; color: var(--c-primary);
   }
@@ -283,6 +291,10 @@ const fontFaceCss = fonts
     .site-header__cta { padding: 0.6rem 1.1rem; font-size: 0.74rem; }
     .site-header { position: relative; }
     .site-header--overlay { position: absolute; }
+    /* bigger, un-squished logo on phones */
+    .site-header__logo-img--large { height: 7rem; margin: -0.5rem 0 0 -0.25rem; }
+    .site-footer__inner { gap: 1.75rem; }
+    .site-footer__links { align-items: flex-start; text-align: left; }
   }
 
   .site-footer {
@@ -297,11 +309,12 @@ const fontFaceCss = fonts
     max-width: 72rem; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 2.5rem; justify-content: space-between;
   }
   .site-footer__brand { max-width: 26rem; }
-  .site-footer__logo-img { height: 5rem; width: auto; }
+  .site-footer__logo-link { display: inline-block; }
+  .site-footer__logo-img { height: 6.5rem; width: auto; display: block; }
   .site-footer__logo-text { font-family: var(--f-logo); font-size: 2rem; color: #fff; }
   .site-footer__blurb { margin: 1rem 0 0.5rem; line-height: 1.65; font-size: 0.95rem; }
   .site-footer__locations { margin: 0; font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); line-height: 1.6; }
-  .site-footer__links { display: flex; flex-direction: column; gap: 0.55rem; }
+  .site-footer__links { display: flex; flex-direction: column; gap: 0.55rem; text-align: right; align-items: flex-end; }
   .site-footer__links a {
     color: #eef4f2; text-decoration: none; font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
   }

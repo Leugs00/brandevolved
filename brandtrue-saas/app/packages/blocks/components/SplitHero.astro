@@ -41,9 +41,10 @@ const wash = data.wash_image ?? {};
 <style>
   /* full-bleed photo behind everything; watercolor wash overlays it and
      fades out to the right so the portrait stays clear */
-  .lm-hero { position: relative; min-height: min(46rem, 92vh); display: flex; align-items: center; overflow: hidden; }
+  .lm-hero { position: relative; min-height: 100vh; display: flex; align-items: center; overflow: hidden; }
   .lm-hero__media { position: absolute; inset: 0; z-index: 0; }
-  .lm-hero__media img { width: 100%; height: 100%; object-fit: cover; object-position: 65% 30%; display: block; }
+  /* object-position pulled up so there's clear photo above Lori's head for the overlaid menu */
+  .lm-hero__media img { width: 100%; height: 100%; object-fit: cover; object-position: 62% 14%; display: block; }
   .lm-hero__wash {
     position: absolute; inset: 0; z-index: 1;
     background: var(--wash, linear-gradient(90deg, var(--c-cream), transparent)) left center / cover no-repeat;

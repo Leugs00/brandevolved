@@ -12,6 +12,8 @@ const side = data.image_side === "left" ? "left" : "right";
 const bg = String(data.background ?? "cream");
 const framed = data.image_style === "framed";
 const wash = data.wash_image ?? {};
+const fullBg = data.bg_full ?? {};
+const isFullBg = !!fullBg.src;
 const paragraphs = String(data.body ?? "")
   .split(/\n\s*\n/)
   .map((p) => p.trim())
@@ -23,9 +25,9 @@ const paragraphs = String(data.body ?? "")
     "lm-intro",
     `lm-intro--img-${side}`,
     `lm-intro--bg-${bg}`,
-    { "lm-intro--washed": !!wash.src, "lm-intro--wash-flip": data.wash_flip === "yes", "lm-intro--wide-img": data.image_width === "wide" },
+    { "lm-intro--washed": !!wash.src, "lm-intro--wide-img": data.image_width === "wide", "lm-intro--fullbg": isFullBg },
   ]}
-  style={wash.src ? `--wash:url('${wash.src}')` : undefined}
+  style={[wash.src ? `--wash:url('${wash.src}')` : "", isFullBg ? `--fullbg:url('${fullBg.src}')` : ""].filter(Boolean).join(";")}
 >
   <div class="lm-intro__content">
     {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
@@ -48,7 +50,10 @@ const paragraphs = String(data.body ?? "")
           </a>
         )}
         {data.cta2_label && (
-          <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
+          <a
+            class:list={["lm-intro__cta2", data.cta2_style === "link" ? "lm-link-raise" : "lm-btn lm-btn--outline"]}
+            href={data.cta2_href || "#"}
+          >
             <span data-field="cta2_label">{data.cta2_label}</span>
           </a>
         )}
@@ -58,14 +63,26 @@ const paragraphs = String(data.body ?? "")
       </div>
     )}
   </div>
-  {image.src && (
+  {image.src && !isFullBg && (
     <div class:list={["lm-intro__media", { "lm-intro__media--framed": framed }]}>
-      <img
-        src={image.src}
-        alt={image.alt ?? ""}
-        loading="lazy"
-        style={data.image_position ? `object-position:${data.image_position}` : undefined}
-      />
+      {framed ? (
+        <figure class="lm-intro__polaroid" data-anim>
+          <img
+            src={image.src}
+            alt={image.alt ?? ""}
+            loading="lazy"
+            style={data.image_position ? `object-position:${data.image_position}` : undefined}
+          />
+          {data.image_caption && <figcaption>{data.image_caption}</figcaption>}
+        </figure>
+      ) : (
+        <img
+          src={image.src}
+          alt={image.alt ?? ""}
+          loading="lazy"
+          style={data.image_position ? `object-position:${data.image_position}` : undefined}
+        />
+      )}
     </div>
   )}
 </section>
@@ -77,18 +94,17 @@ const paragraphs = String(data.body ?? "")
   .lm-intro--bg-cream { background: var(--c-cream); }
   .lm-intro--bg-white { background: var(--c-bg); }
   .lm-intro--img-left .lm-intro__media { order: -1; }
-  .lm-intro__content { padding: clamp(2.5rem, 6vw, 5.5rem); max-width: 36rem; justify-self: center; }
-  /* soft watercolor wash behind the text column, feathered at the edges */
-  .lm-intro--washed .lm-intro__content { position: relative; z-index: 0; }
-  .lm-intro--washed .lm-intro__content::before {
-    content: ""; position: absolute; inset: 0; z-index: -1;
-    background: var(--wash) center / cover no-repeat;
-    -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 42%, transparent 74%);
-    mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, #000 42%, transparent 74%);
+  .lm-intro__content { position: relative; z-index: 1; padding: clamp(2.5rem, 6vw, 5.5rem); max-width: 40rem; justify-self: center; }
+  .lm-intro__media { position: relative; z-index: 1; }
+  /* watercolor bleeds off the right edge of the whole section (source is
+     transparent on the left, so it fades into the page with no seam) */
+  .lm-intro--washed { position: relative; overflow: hidden; }
+  .lm-intro--washed::before {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 70%; z-index: 0;
+    background: var(--wash) right top / cover no-repeat;
   }
-  /* mirror the wash so its straighter edge faces the other way */
-  .lm-intro--wash-flip .lm-intro__content::before { transform: scaleX(-1); }
-  /* give the photo the bigger share of the row */
+  /* one side gets the bigger share of the row (image-right → image wide;
+     image-left → text wide, since the image track comes first) */
   @media (min-width: 46rem) {
     .lm-intro--wide-img { grid-template-columns: 5fr 7fr; }
   }
@@ -101,15 +117,51 @@ const paragraphs = String(data.body ?? "")
   .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
   .lm-intro__script { text-align: right; margin: 1rem 0 0; font-size: 2.5rem; }
   .lm-intro--img-left .lm-intro__script { text-align: left; }
-  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1.6rem; }
+  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem; margin-top: 1.6rem; }
+  /* secondary CTA as a text link that lifts + shadows on hover (not a filled button) */
+  .lm-link-raise {
+    display: inline-block; color: var(--c-primary); text-decoration: none;
+    font-family: var(--f-body); font-size: 0.82rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 0.5rem 0.4rem; border-bottom: 2px solid var(--c-accent);
+    transition: transform 0.2s ease, text-shadow 0.2s ease;
+  }
+  .lm-link-raise:hover { transform: translateY(-3px); text-shadow: 0 6px 14px rgba(0, 0, 0, 0.18); }
+
+  /* full-bleed background variant (text in a left container over the photo) */
+  .lm-intro--fullbg {
+    display: block; background: var(--fullbg) center / cover no-repeat; min-height: 34rem;
+    display: flex; align-items: center;
+  }
+  .lm-intro--fullbg .lm-intro__content {
+    max-width: 34rem; justify-self: start; margin: clamp(2rem, 5vw, 4rem) 0 clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+    background: linear-gradient(105deg, rgba(248,243,236,0.92) 55%, rgba(248,243,236,0));
+    border-radius: 0.5rem;
+  }
+  @media (max-width: 46rem) {
+    .lm-intro--fullbg .lm-intro__content {
+      margin: 0; max-width: none;
+      background: linear-gradient(180deg, rgba(248,243,236,0.94) 70%, rgba(248,243,236,0.7));
+    }
+  }
   .lm-intro__arrow { height: 2.5rem; width: auto; transform: rotate(90deg); margin-left: -0.2rem; }
   .lm-intro__media { align-self: stretch; min-height: 24rem; }
-  /* framed: smaller polaroid-style photo instead of a full-bleed column */
+  /* framed: polaroid-style photo with a handwritten caption on the bottom border */
   .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.25rem, 3vw, 2.5rem); }
-  .lm-intro__media--framed img, .lm-intro--img-left .lm-intro__media--framed img {
-    width: 100%; max-width: 31rem; height: auto; margin: 0 auto; display: block;
-    background: #fff; padding: 0.9rem 0.9rem 1.4rem; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
-    -webkit-mask-image: none; mask-image: none;
+  /* the source photo already carries its own polaroid frame + tape + sprig,
+     so don't add a second frame — just drop a soft shadow and print the
+     caption underneath, aligned to the photo. */
+  .lm-intro__polaroid {
+    width: 100%; max-width: 32rem; margin: 0 auto; display: block;
+    background: transparent; padding: 0;
+    filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.16));
+  }
+  .lm-intro__polaroid img {
+    width: 100%; height: auto; display: block; -webkit-mask-image: none; mask-image: none;
+  }
+  .lm-intro__polaroid figcaption {
+    font-family: var(--f-body); font-size: 0.85rem; line-height: 1.55; color: #6b7268;
+    padding: 1rem 0.6rem 0; text-align: left; max-width: 26rem;
   }
   .lm-intro__media img {
     width: 100%; height: 100%; object-fit: cover; display: block;

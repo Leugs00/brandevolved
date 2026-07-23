@@ -317,6 +317,7 @@ export const blockDefs: Record<string, BlockDef> = {
       script_line: { type: "text", label: "Script accent", help: "Optional handwritten-style line, e.g. Real. Warm. Human." },
       script_position: { type: "select", label: "Script placement", options: ["after_text", "under_heading"], help: "After the paragraphs (aligned to the photo side) or centered directly under the heading." },
       image: { type: "image", label: "Photo", help: "The image beside the text." },
+      image_caption: { type: "text", label: "Photo caption", help: "Optional caption printed on the bottom of a framed/polaroid photo." },
       image_side: { type: "select", label: "Photo side", options: ["right", "left"], help: "Which side the photo sits on (desktop)." },
       image_position: { type: "text", label: "Photo focus point", help: "Which part of the photo stays visible when it's cropped — e.g. right top, center, left bottom. Leave empty for center." },
       image_style: { type: "select", label: "Photo style", options: ["full", "framed"], help: "Full = photo fills its half edge-to-edge. Framed = smaller polaroid-style photo with a white border." },
@@ -327,8 +328,10 @@ export const blockDefs: Record<string, BlockDef> = {
       arrow_image: { type: "image", label: "Arrow image", help: "Optional hand-drawn arrow shown beside the button." },
       wash_image: { type: "image", label: "Watercolor behind text", help: "Optional watercolor texture shown softly behind the text column." },
       wash_flip: { type: "select", label: "Flip the watercolor?", options: ["no", "yes"], help: "Yes mirrors the texture left-to-right, e.g. to put its straighter edge on the other side." },
-      cta2_label: { type: "text", label: "Second button label", help: "Optional outlined button text." },
-      cta2_href: { type: "url", label: "Second button link", help: "Where the outlined button goes." },
+      cta2_label: { type: "text", label: "Second button label", help: "Optional second action." },
+      cta2_href: { type: "url", label: "Second button link", help: "Where the second action goes." },
+      cta2_style: { type: "select", label: "Second button style", options: ["outline", "link"], help: "Outline = bordered button. Link = plain text link that lifts + shadows on hover." },
+      bg_full: { type: "image", label: "Full-bleed background", help: "Optional: makes the whole section a full-width background photo with the text in a left panel (no separate photo column)." },
     },
     schema: z
       .object({
@@ -338,6 +341,7 @@ export const blockDefs: Record<string, BlockDef> = {
         script_line: z.string().default(""),
         script_position: z.enum(["after_text", "under_heading"]).default("after_text"),
         image,
+        image_caption: z.string().default(""),
         image_side: z.enum(["right", "left"]).default("right"),
         image_position: z.string().default(""),
         image_style: z.enum(["full", "framed"]).default("full"),
@@ -350,6 +354,8 @@ export const blockDefs: Record<string, BlockDef> = {
         wash_flip: z.enum(["no", "yes"]).default("no"),
         cta2_label: z.string().default(""),
         cta2_href: z.string().default(""),
+        cta2_style: z.enum(["outline", "link"]).default("outline"),
+        bg_full: image,
       })
       .passthrough(),
     defaults: { eyebrow: "", heading: "Section heading", body: "", image_side: "right", background: "cream" },
@@ -467,6 +473,7 @@ export const blockDefs: Record<string, BlockDef> = {
         help: "One card per service.",
         item: {
           image: { type: "image", label: "Photo", help: "Card image (real client work beats stock)." },
+          images: { type: "list", label: "Rotating photos", help: "Optional: add several photos and the card auto-rotates through them. Overrides the single Photo above.", item: { photo: { type: "image", label: "Photo" } } },
           title: { type: "text", label: "Title", help: "Service name." },
           body: { type: "text", label: "Text", help: "One-sentence pitch." },
           link_label: { type: "text", label: "Link label", help: "Defaults to Learn more." },
@@ -487,6 +494,7 @@ export const blockDefs: Record<string, BlockDef> = {
           .array(
             z.object({
               image,
+              images: z.array(z.object({ photo: image })).default([]),
               title: z.string().default(""),
               body: z.string().default(""),
               link_label: z.string().default(""),
@@ -537,7 +545,7 @@ export const blockDefs: Record<string, BlockDef> = {
     fields: {
       heading: { type: "text", label: "Heading", help: "E.g. See our work." },
       intro: { type: "text", label: "Intro text", help: "Optional sentence under the heading." },
-      bg_image: { type: "image", label: "Device photo", help: "The photo containing the blank device screen the slides appear inside." },
+      bg_image: { type: "image", label: "Device photo", help: "The photo of the device with its screen knocked out to transparent — screenshots show through it." },
       slides: {
         type: "list",
         label: "Screenshots",
@@ -551,6 +559,7 @@ export const blockDefs: Record<string, BlockDef> = {
       screen_top: { type: "number", label: "Screen top (%)", help: "Where the screen starts from the top of the photo." },
       screen_width: { type: "number", label: "Screen width (%)", help: "Screen width as a share of the photo width." },
       screen_height: { type: "number", label: "Screen height (%)", help: "Screen height as a share of the photo height." },
+      overhang: { type: "number", label: "Screenshot overhang (%)", help: "How far the screenshot extends past the screen behind the frame (hidden by the bezel). 1–2 is usually right." },
     },
     schema: z
       .object({
@@ -558,13 +567,14 @@ export const blockDefs: Record<string, BlockDef> = {
         intro: z.string().default(""),
         bg_image: image,
         slides: z.array(z.object({ image, label: z.string().default("") })).default([]),
-        screen_left: z.number().default(34.85),
-        screen_top: z.number().default(27.7),
-        screen_width: z.number().default(29.45),
-        screen_height: z.number().default(42.1),
+        screen_left: z.number().default(35.35),
+        screen_top: z.number().default(28.56),
+        screen_width: z.number().default(28.83),
+        screen_height: z.number().default(40.23),
+        overhang: z.number().default(1.6),
       })
       .passthrough(),
-    defaults: { heading: "See our work.", slides: [], screen_left: 34.85, screen_top: 27.7, screen_width: 29.45, screen_height: 42.1 },
+    defaults: { heading: "See our work.", slides: [], screen_left: 35.35, screen_top: 28.56, screen_width: 28.83, screen_height: 40.23, overhang: 1.6 },
   },
 };
 
