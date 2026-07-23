@@ -560,6 +560,8 @@ export const blockDefs: Record<string, BlockDef> = {
       screen_width: { type: "number", label: "Screen width (%)", help: "Screen width as a share of the photo width." },
       screen_height: { type: "number", label: "Screen height (%)", help: "Screen height as a share of the photo height." },
       overhang: { type: "number", label: "Screenshot overhang (%)", help: "How far the screenshot extends past the screen behind the frame (hidden by the bezel). 1–2 is usually right." },
+      cta_label: { type: "text", label: "Button label", help: "Optional gold button under the carousel, e.g. View our work." },
+      cta_href: { type: "url", label: "Button link", help: "Where the button goes, e.g. /work." },
     },
     schema: z
       .object({
@@ -567,6 +569,8 @@ export const blockDefs: Record<string, BlockDef> = {
         intro: z.string().default(""),
         bg_image: image,
         slides: z.array(z.object({ image, label: z.string().default("") })).default([]),
+        cta_label: z.string().default(""),
+        cta_href: z.string().default(""),
         screen_left: z.number().default(35.35),
         screen_top: z.number().default(28.56),
         screen_width: z.number().default(28.83),

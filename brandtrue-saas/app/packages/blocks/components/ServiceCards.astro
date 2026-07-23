@@ -61,7 +61,6 @@ function cellsFor(item: Record<string, any>) {
         {data.cta_label && (
           <a class="lm-btn" href={data.cta_href || "#"}>
             <span data-field="cta_label">{data.cta_label}</span>
-            <span class="lm-btn__arrow" aria-hidden="true">→</span>
           </a>
         )}
         {data.cta2_label && (
@@ -138,5 +137,5 @@ function cellsFor(item: Record<string, any>) {
   .lm-services__card:hover .lm-services__link { color: var(--c-primary); }
 
   .lm-services__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; justify-content: center; margin-top: 2.5rem; }
-  .lm-rise__arrow--glyph { transform: none; font-size: 1.1rem; color: var(--c-primary); }
+  .lm-rise__arrow--glyph { transform: none; font-size: 1.2rem; color: var(--c-accent); }
 </style>

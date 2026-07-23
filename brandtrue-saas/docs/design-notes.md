@@ -41,6 +41,22 @@ Running notes so every future section stays consistent. Applies to the
 - Screenshot layer is sized a touch **larger** than the hole (overhang) and has
   **square corners** — the device's rounded glass provides the corners.
 
+## Copy rules
+
+- **No em-dashes (—). Ever, unless the client explicitly asks for one.** The
+  client has repeatedly asked for these to be removed. Rewrite the sentence, use
+  a comma, a full stop, or a spaced hyphen ( - ) instead. Applies to all copy on
+  every page and to seeded content.
+
+## Buttons
+
+- **Primary buttons (gold `.lm-btn`) carry no arrow** unless a design explicitly
+  calls for one (e.g. the hero's hand-drawn gold arrow beside "Let's make that
+  happen"). Default = label only.
+- **Secondary action** = text label + arrow using `.lm-rise` / `.lm-secondary`:
+  no underline at rest; on hover the label underlines and the label + arrow rise
+  together. The arrow is **gold** (`var(--c-accent)`), never teal.
+
 ## Colour / interaction
 
 - Primary teal `#008378`, deep teal `#0a5c52`, gold accent `#b79762`, cream `#f8f3ec`.

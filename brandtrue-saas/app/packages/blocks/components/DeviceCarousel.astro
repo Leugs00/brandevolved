@@ -63,6 +63,11 @@ const screenStyle = `left:${left - oh}%;top:${top}%;width:${width + oh * 2}%;hei
       )}
     </div>
   )}
+  {data.cta_label && (
+    <div class="lm-device__cta" data-anim>
+      <a class="lm-btn" href={data.cta_href || "/work"}><span data-field="cta_label">{data.cta_label}</span></a>
+    </div>
+  )}
 </section>
 
 <script>
@@ -124,4 +129,5 @@ const screenStyle = `left:${left - oh}%;top:${top}%;width:${width + oh * 2}%;hei
   }
   .lm-device__dot.active { background: var(--c-primary); transform: scale(1.25); }
   .lm-device__dot:hover { background: var(--c-accent); }
+  .lm-device__cta { text-align: center; margin-top: 2.25rem; }
 </style>
