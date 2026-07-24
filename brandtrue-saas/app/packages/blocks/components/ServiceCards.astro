@@ -66,7 +66,11 @@ function cellsFor(item: Record<string, any>) {
         {data.cta2_label && (
           <a class="lm-rise lm-services__cta2" href={data.cta2_href || "#"}>
             <span class="lm-secondary" data-field="cta2_label">{data.cta2_label}</span>
-            <span class="lm-rise__arrow lm-rise__arrow--glyph" aria-hidden="true">→</span>
+            {data.cta2_arrow?.src ? (
+              <img class="lm-rise__arrow" src={data.cta2_arrow.src} alt="" aria-hidden="true" loading="lazy" />
+            ) : (
+              <span class="lm-rise__arrow lm-rise__arrow--glyph" aria-hidden="true">→</span>
+            )}
           </a>
         )}
       </div>

@@ -482,8 +482,9 @@ export const blockDefs: Record<string, BlockDef> = {
       },
       cta_label: { type: "text", label: "Button label", help: "Optional gold button under the cards." },
       cta_href: { type: "url", label: "Button link", help: "Where the gold button goes." },
-      cta2_label: { type: "text", label: "Second button label", help: "Optional outlined button." },
+      cta2_label: { type: "text", label: "Second button label", help: "Optional secondary text link with arrow." },
       cta2_href: { type: "url", label: "Second button link", help: "Where it goes." },
+      cta2_arrow: { type: "image", label: "Second button arrow", help: "Optional hand-drawn arrow shown beside the secondary link." },
     },
     schema: z
       .object({
@@ -506,6 +507,7 @@ export const blockDefs: Record<string, BlockDef> = {
         cta_href: z.string().default(""),
         cta2_label: z.string().default(""),
         cta2_href: z.string().default(""),
+        cta2_arrow: image,
       })
       .passthrough(),
     defaults: { heading: "Our services", items: [] },

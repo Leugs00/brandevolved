@@ -100,12 +100,12 @@ const quoteIcon = data.quote_icon ?? {};
   }
   .lm-quotes__card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1); }
   /* large, faded quote mark as a background motif on the upper-left of the card */
-  /* gold quote mark motif sits low, behind the quote paragraph */
+  /* gold quote mark motif, left-aligned behind the headline (first sentence) */
   .lm-quotes__mark {
-    position: absolute; top: 45%; left: -0.6rem; z-index: 0;
-    height: 9rem; width: auto; opacity: 0.2; pointer-events: none;
+    position: absolute; top: 2.6rem; left: -0.3rem; z-index: 0;
+    height: 7rem; width: auto; opacity: 0.2; pointer-events: none;
   }
-  .lm-quotes__mark--text { font-family: var(--f-heading); color: var(--c-accent); font-size: 9rem; line-height: 0.8; height: auto; opacity: 0.28; }
+  .lm-quotes__mark--text { font-family: var(--f-heading); color: var(--c-accent); font-size: 7rem; line-height: 0.8; height: auto; opacity: 0.28; }
   .lm-quotes__card > *:not(.lm-quotes__mark) { position: relative; z-index: 1; }
   .lm-quotes__stars { color: var(--c-accent); letter-spacing: 0.2em; margin: 0 0 0.6rem; }
   h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.2rem; line-height: 1.3; margin: 0 0 0.7rem; }
