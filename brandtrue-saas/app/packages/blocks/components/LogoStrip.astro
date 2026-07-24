@@ -1,0 +1,46 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const logos = (Array.isArray(data.logos) ? data.logos : [])
+  .map((l: any) => l?.logo ?? l)
+  .filter((l: any) => l?.src);
+const bg = String(data.background ?? "cream");
+---
+
+<section class:list={["lm-logos", `lm-logos--bg-${bg}`]}>
+  <div class="lm-logos__inner">
+    {data.heading && <p class="lm-logos__heading" data-field="heading" data-anim>{data.heading}</p>}
+    <div class="lm-logos__row" data-anim style="--anim-delay:.1s">
+      {logos.map((l: any) => (
+        <img src={l.src} alt={l.alt ?? ""} loading="lazy" />
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .lm-logos { padding: clamp(2.25rem, 5vw, 3.5rem) 1.5rem; }
+  .lm-logos--bg-cream { background: var(--c-cream); }
+  .lm-logos--bg-white { background: var(--c-bg); }
+  .lm-logos__inner { max-width: 66rem; margin: 0 auto; text-align: center; }
+  .lm-logos__heading {
+    font-family: var(--f-body); font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-primary);
+    margin: 0 0 1.6rem;
+  }
+  .lm-logos__row {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: clamp(1.75rem, 5vw, 3.5rem);
+  }
+  .lm-logos__row img {
+    height: clamp(1.9rem, 3.4vw, 2.6rem); width: auto; display: block;
+    opacity: 0.82; transition: opacity 0.2s ease;
+  }
+  .lm-logos__row img:hover { opacity: 1; }
+</style>

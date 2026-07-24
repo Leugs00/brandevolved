@@ -284,6 +284,7 @@ export const blockDefs: Record<string, BlockDef> = {
     description: "Homepage hero: headline + script accent + button on the left, large photo on the right, watercolor wash behind.",
     fields: {
       heading: { type: "text", label: "Headline", help: "The big opening line of the page." },
+      hide_heading: { type: "select", label: "Hide headline?", options: ["no", "yes"], help: "Yes hides the headline visually (kept for search engines) and makes the script the large lead." },
       script_line: { type: "text", label: "Script accent", help: "Short handwritten-style line under the headline, e.g. real. authentic. you." },
       body: { type: "text", label: "Supporting text", help: "One or two sentences under the accent line." },
       cta_label: { type: "text", label: "Button label", help: "Text on the gold button. Leave empty for no button." },
@@ -295,6 +296,7 @@ export const blockDefs: Record<string, BlockDef> = {
     schema: z
       .object({
         heading: z.string().default(""),
+        hide_heading: z.enum(["no", "yes"]).default("no"),
         script_line: z.string().default(""),
         body: z.string().default(""),
         cta_label: z.string().default(""),
@@ -304,7 +306,7 @@ export const blockDefs: Record<string, BlockDef> = {
         arrow_image: image,
       })
       .passthrough(),
-    defaults: { heading: "Your headline", script_line: "", body: "", cta_label: "", cta_href: "" },
+    defaults: { heading: "Your headline", hide_heading: "no", script_line: "", body: "", cta_label: "", cta_href: "" },
   },
   intro_split: {
     kind: "intro_split",
@@ -613,6 +615,29 @@ export const blockDefs: Record<string, BlockDef> = {
       })
       .passthrough(),
     defaults: { heading: "Section heading", body: "Write something here.", background: "white", align: "left" },
+  },
+  logo_strip: {
+    kind: "logo_strip",
+    label: "Logo strip",
+    description: "A row of client / publication logos, e.g. an 'As featured in' trust bar. Logos look best as a single flat colour on transparent.",
+    fields: {
+      heading: { type: "text", label: "Label", help: "Small uppercase label above the logos, e.g. As featured in." },
+      background: { type: "select", label: "Background", options: ["cream", "white"], help: "Section background colour." },
+      logos: {
+        type: "list",
+        label: "Logos",
+        help: "Each logo (transparent PNG/WebP works best).",
+        item: { logo: { type: "image", label: "Logo" } },
+      },
+    },
+    schema: z
+      .object({
+        heading: z.string().default(""),
+        background: z.enum(["cream", "white"]).default("cream"),
+        logos: z.array(z.object({ logo: image })).default([]),
+      })
+      .passthrough(),
+    defaults: { heading: "As featured in", background: "cream", logos: [] },
   },
 };
 

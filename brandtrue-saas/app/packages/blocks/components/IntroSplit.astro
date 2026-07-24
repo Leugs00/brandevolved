@@ -37,7 +37,13 @@ const paragraphs = String(data.body ?? "")
     )}
     <span class="lm-intro__rule" aria-hidden="true"></span>
     <div class="lm-intro__body" data-field="body" data-anim style="--anim-delay:.15s">
-      {paragraphs.map((p) => <p>{p}</p>)}
+      {paragraphs.map((p) =>
+        p.startsWith("~") ? (
+          <p class="lm-script lm-intro__inline-script">{p.replace(/^~\s*/, "")}</p>
+        ) : (
+          <p>{p}</p>
+        ),
+      )}
     </div>
     {data.script_line && data.script_position !== "under_heading" && (
       <p class="lm-script lm-intro__script" data-field="script_line" data-anim style="--anim-delay:.3s">{data.script_line}</p>
@@ -126,6 +132,8 @@ const paragraphs = String(data.body ?? "")
   }
   .lm-intro__rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.4rem 0; }
   .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
+  /* a "~ real. intentional. inspired." line renders as a standalone gold script */
+  .lm-intro__inline-script { margin: 0.4rem 0 1.4rem !important; line-height: 1.1; }
   .lm-intro__script { text-align: right; margin: 1rem -0.5rem 0 0; }
   .lm-intro--img-left .lm-intro__script { text-align: left; margin-right: 0; }
   .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: 1.6rem; }
