@@ -1,0 +1,76 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const bg = String(data.background ?? "white");
+const align = data.align === "center" ? "center" : "left";
+const quoteIcon = data.quote_icon ?? {};
+const paragraphs = String(data.body ?? "")
+  .split(/\n\s*\n/)
+  .map((p) => p.trim())
+  .filter(Boolean);
+const hasQuote = !!data.quote;
+---
+
+<section class:list={["lm-prose", `lm-prose--bg-${bg}`, `lm-prose--${align}`]}>
+  <div class="lm-prose__inner">
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+    {data.script_line && (
+      <p class="lm-script lm-prose__script" data-field="script_line" data-anim style="--anim-delay:.1s">{data.script_line}</p>
+    )}
+    {data.heading && <span class="lm-prose__rule" aria-hidden="true"></span>}
+    <div class="lm-prose__body" data-field="body" data-anim style="--anim-delay:.15s">
+      {paragraphs.map((p) => <p>{p}</p>)}
+    </div>
+    {hasQuote && (
+      <figure class="lm-prose__quote" data-anim style="--anim-delay:.2s">
+        {quoteIcon.src && <img class="lm-prose__qmark" src={quoteIcon.src} alt="" aria-hidden="true" loading="lazy" />}
+        <blockquote>{data.quote}</blockquote>
+        {(data.quote_author || data.quote_role) && (
+          <figcaption>
+            {data.quote_author && <span class="lm-prose__qauthor">{data.quote_author}</span>}
+            {data.quote_role && <span class="lm-prose__qrole">{data.quote_role}</span>}
+          </figcaption>
+        )}
+      </figure>
+    )}
+  </div>
+</section>
+
+<style>
+  .lm-prose { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; }
+  .lm-prose--bg-white { background: var(--c-bg); }
+  .lm-prose--bg-cream { background: var(--c-cream); }
+  .lm-prose__inner { max-width: 46rem; margin: 0 auto; }
+  .lm-prose--center .lm-prose__inner { text-align: center; }
+  .lm-eyebrow { }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.6rem); line-height: 1.18; margin: 0;
+  }
+  .lm-prose__script { margin: 0.7rem 0 0; }
+  .lm-prose__rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.4rem 0; }
+  .lm-prose--center .lm-prose__rule { margin-left: auto; margin-right: auto; }
+  .lm-prose__body p { line-height: 1.8; margin: 0 0 1.15rem; font-size: 1.02rem; }
+  .lm-prose__body p:last-child { margin-bottom: 0; }
+
+  /* built-in pull quote */
+  .lm-prose__quote { position: relative; margin: 2.5rem 0 0; padding: 1.5rem 0 0 0; }
+  .lm-prose__qmark { position: absolute; top: -0.5rem; left: -0.3rem; height: 4.5rem; width: auto; opacity: 0.25; z-index: 0; pointer-events: none; }
+  .lm-prose__quote blockquote {
+    position: relative; z-index: 1; margin: 0; font-family: var(--f-heading);
+    font-size: clamp(1.35rem, 2.6vw, 1.8rem); line-height: 1.4; color: var(--c-primary); font-style: italic;
+  }
+  .lm-prose__quote figcaption { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.1rem; }
+  .lm-prose__qauthor {
+    font-family: var(--f-script); font-weight: 100 !important; -webkit-font-smoothing: antialiased;
+    color: var(--c-accent); font-size: 2.1rem; line-height: 1; text-transform: capitalize;
+  }
+  .lm-prose__qrole { font-size: 0.9rem; color: #5b6b68; }
+</style>

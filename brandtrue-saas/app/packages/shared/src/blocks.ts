@@ -582,6 +582,38 @@ export const blockDefs: Record<string, BlockDef> = {
       .passthrough(),
     defaults: { heading: "See our work.", slides: [], screen_left: 35.35, screen_top: 28.56, screen_width: 28.83, screen_height: 40.23, overhang: 1.6 },
   },
+  prose_section: {
+    kind: "prose_section",
+    label: "Text section",
+    description: "A readable text section with an eyebrow, heading, script accent, paragraphs and an optional pull-quote. Good for About / story pages.",
+    fields: {
+      eyebrow: { type: "text", label: "Eyebrow", help: "Tiny uppercase label above the heading." },
+      heading: { type: "text", label: "Heading", help: "The section heading." },
+      script_line: { type: "text", label: "Script accent", help: "Optional handwritten-style line under the heading." },
+      body: { type: "text", label: "Paragraphs", help: "The text. Leave an empty line between paragraphs." },
+      background: { type: "select", label: "Background", options: ["white", "cream"], help: "Section background colour." },
+      align: { type: "select", label: "Alignment", options: ["left", "center"], help: "Left for reading, center for short statements." },
+      quote: { type: "text", label: "Pull-quote", help: "Optional highlighted quote shown under the text." },
+      quote_author: { type: "text", label: "Quote author", help: "Who said it (shown in gold script)." },
+      quote_role: { type: "text", label: "Quote author role", help: "Their role / business." },
+      quote_icon: { type: "image", label: "Quote mark image", help: "Optional decorative quote mark behind the pull-quote." },
+    },
+    schema: z
+      .object({
+        eyebrow: z.string().default(""),
+        heading: z.string().default(""),
+        script_line: z.string().default(""),
+        body: z.string().default(""),
+        background: z.enum(["white", "cream"]).default("white"),
+        align: z.enum(["left", "center"]).default("left"),
+        quote: z.string().default(""),
+        quote_author: z.string().default(""),
+        quote_role: z.string().default(""),
+        quote_icon: image,
+      })
+      .passthrough(),
+    defaults: { heading: "Section heading", body: "Write something here.", background: "white", align: "left" },
+  },
 };
 
 export const blockKinds = Object.keys(blockDefs);
