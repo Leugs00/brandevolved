@@ -36,10 +36,12 @@ const bg = String(data.background ?? "cream");
   }
   .lm-logos__row {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-    gap: clamp(1.75rem, 5vw, 3.5rem);
+    gap: clamp(1.5rem, 4vw, 3rem);
   }
+  /* fixed height + capped width, object-fit keeps wide logos from dominating or distorting */
   .lm-logos__row img {
-    height: clamp(1.9rem, 3.4vw, 2.6rem); width: auto; display: block;
+    height: clamp(1.8rem, 3.2vw, 2.5rem); width: auto; max-width: 9.5rem;
+    object-fit: contain; display: block;
     opacity: 0.82; transition: opacity 0.2s ease;
   }
   .lm-logos__row img:hover { opacity: 1; }
