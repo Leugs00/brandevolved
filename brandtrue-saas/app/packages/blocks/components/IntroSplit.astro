@@ -25,7 +25,7 @@ const paragraphs = String(data.body ?? "")
     "lm-intro",
     `lm-intro--img-${side}`,
     `lm-intro--bg-${bg}`,
-    { "lm-intro--washed": !!wash.src, "lm-intro--wide-img": data.image_width === "wide", "lm-intro--fullbg": isFullBg },
+    { "lm-intro--washed": !!wash.src, "lm-intro--wide-img": data.image_width === "wide", "lm-intro--narrow-img": data.image_width === "narrow", "lm-intro--fullbg": isFullBg },
   ]}
   style={[wash.src ? `--wash:url('${wash.src}')` : "", isFullBg ? `--fullbg:url('${fullBg.src}')` : ""].filter(Boolean).join(";")}
 >
@@ -123,6 +123,10 @@ const paragraphs = String(data.body ?? "")
      image-left → text wide, since the image track comes first) */
   @media (min-width: 46rem) {
     .lm-intro--wide-img { grid-template-columns: 5fr 7fr; }
+    /* narrow image = wider text column (~57%). Side-aware: the media track is
+       first in source order for image-left (order:-1), second for image-right. */
+    .lm-intro--narrow-img.lm-intro--img-right { grid-template-columns: 7fr 5fr; }
+    .lm-intro--narrow-img.lm-intro--img-left { grid-template-columns: 5fr 7fr; }
   }
   /* compound selector beats the later `.lm-intro__script { text-align:right }` */
   .lm-intro__script.lm-intro__script--under-heading { text-align: left; margin: 0.9rem 0 0; }
