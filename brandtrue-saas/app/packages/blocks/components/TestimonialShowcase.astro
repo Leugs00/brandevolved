@@ -119,7 +119,7 @@ const roleLine = (s: Record<string, any>) => {
   .lm-tshow__stars { color: var(--stars); letter-spacing: 0.35em; font-size: 1.1rem; margin: 0 0 0.6rem; }
   .lm-tshow__name { font-family: var(--f-heading); font-weight: 700; font-style: italic; color: var(--name); font-size: clamp(1.8rem, 3.2vw, 2.4rem); line-height: 1.1; margin: 0; }
   .lm-tshow__role { color: var(--role); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin: 0.5rem 0 1.1rem; }
-  .lm-tshow__role a { color: inherit; text-decoration: underline; }
+  .lm-tshow__role :global(a) { color: inherit; text-decoration: underline; }
   .lm-tshow__quote { margin: 0; color: var(--text); line-height: 1.7; font-size: 1.02rem; }
 
   .lm-tshow__nav {

@@ -69,8 +69,8 @@ const withLinks = (p: string) =>
   .lm-prose--center .lm-prose__rule { margin-left: auto; margin-right: auto; }
   .lm-prose__body p { line-height: 1.8; margin: 0 0 1.15rem; font-size: 1.02rem; }
   .lm-prose__body p:last-child { margin-bottom: 0; }
-  .lm-prose__body a { color: var(--c-primary); text-decoration: underline; text-underline-offset: 2px; }
-  .lm-prose__body a:hover { color: var(--c-accent); }
+  .lm-prose__body :global(a) { color: var(--c-primary); text-decoration: underline; text-underline-offset: 2px; }
+  .lm-prose__body :global(a:hover) { color: var(--c-accent); }
 
   /* built-in pull quote */
   .lm-prose__quote { position: relative; margin: 2.5rem 0 0; padding: 1.5rem 0 0 0; }
