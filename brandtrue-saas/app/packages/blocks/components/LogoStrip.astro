@@ -28,7 +28,7 @@ const bg = String(data.background ?? "cream");
   .lm-logos { padding: clamp(2.25rem, 5vw, 3.5rem) 1.5rem; }
   .lm-logos--bg-cream { background: var(--c-cream); }
   .lm-logos--bg-white { background: var(--c-bg); }
-  .lm-logos__inner { max-width: 66rem; margin: 0 auto; text-align: center; }
+  .lm-logos__inner { max-width: 74rem; margin: 0 auto; text-align: center; }
   .lm-logos__heading {
     font-family: var(--f-body); font-size: 0.78rem; font-weight: 600;
     letter-spacing: 0.22em; text-transform: uppercase; color: var(--c-primary);
@@ -36,11 +36,11 @@ const bg = String(data.background ?? "cream");
   }
   .lm-logos__row {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-    gap: clamp(1.5rem, 4vw, 3rem);
+    gap: clamp(1.1rem, 2.6vw, 2.1rem);
   }
   /* fixed height + capped width, object-fit keeps wide logos from dominating or distorting */
   .lm-logos__row img {
-    height: clamp(1.8rem, 3.2vw, 2.5rem); width: auto; max-width: 9.5rem;
+    height: clamp(1.7rem, 3vw, 2.4rem); width: auto; max-width: 8.5rem;
     object-fit: contain; display: block;
     opacity: 0.82; transition: opacity 0.2s ease;
   }
