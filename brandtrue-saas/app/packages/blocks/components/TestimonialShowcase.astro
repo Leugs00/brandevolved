@@ -1,0 +1,145 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const quoteIcon = data.quote_icon ?? {};
+const slides: Record<string, any>[] = (Array.isArray(data.slides) ? data.slides : []).filter(
+  (s) => s?.quote,
+);
+const stripProtocol = (u: string) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
+const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
+---
+
+<section class="lm-tshow">
+  {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+  {data.intro && <p class="lm-tshow__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+
+  {slides.length > 0 && (
+    <div class="lm-tshow__stage" data-anim style="--anim-delay:.2s">
+      <div class="lm-tshow__viewport" aria-live="polite">
+        {slides.map((s, i) => (
+          <article class:list={["lm-tshow__slide", `lm-tshow__slide--${i % 2 === 0 ? "mint" : "gold"}`, { active: i === 0 }]} data-index={i}>
+            {quoteIcon.src && <img class="lm-tshow__mark lm-tshow__mark--tl" src={quoteIcon.src} alt="" aria-hidden="true" loading="lazy" />}
+            {s.image?.src && (
+              <figure class="lm-tshow__photo">
+                <img src={s.image.src} alt={s.image.alt ?? s.name ?? ""} loading="lazy" style={s.image_position ? `object-position:${s.image_position}` : undefined} />
+              </figure>
+            )}
+            <div class="lm-tshow__content">
+              {Number(s.rating) > 0 && (
+                <p class="lm-tshow__stars" aria-label={`${s.rating} out of 5 stars`}>{"★".repeat(Math.round(Number(s.rating)))}</p>
+              )}
+              <h3 class="lm-tshow__name">{s.name}</h3>
+              {(s.role || s.website) && (
+                <p class="lm-tshow__role">
+                  {s.role}
+                  {s.website && (
+                    <>{s.role ? " " : ""}<a href={ensureHttp(s.website)} target="_blank" rel="noopener noreferrer">{stripProtocol(s.website)}</a></>
+                  )}
+                </p>
+              )}
+              <blockquote class="lm-tshow__quote">{s.quote}</blockquote>
+            </div>
+            {quoteIcon.src && <img class="lm-tshow__mark lm-tshow__mark--br" src={quoteIcon.src} alt="" aria-hidden="true" loading="lazy" />}
+          </article>
+        ))}
+      </div>
+
+      {slides.length > 1 && (
+        <>
+          <button class="lm-tshow__nav lm-tshow__nav--prev" type="button" aria-label="Previous testimonial">‹</button>
+          <button class="lm-tshow__nav lm-tshow__nav--next" type="button" aria-label="Next testimonial">›</button>
+          <div class="lm-tshow__dots" role="tablist">
+            {slides.map((s, i) => (
+              <button class:list={["lm-tshow__dot", { active: i === 0 }]} type="button" data-index={i} aria-label={`Show testimonial ${i + 1}`}></button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll(".lm-tshow__stage").forEach((stage) => {
+    const slides = [...stage.querySelectorAll<HTMLElement>(".lm-tshow__slide")];
+    const dots = [...stage.querySelectorAll<HTMLElement>(".lm-tshow__dot")];
+    if (slides.length < 2) return;
+    let i = 0;
+    const show = (n: number) => {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, k) => s.classList.toggle("active", k === i));
+      dots.forEach((d, k) => d.classList.toggle("active", k === i));
+    };
+    stage.querySelector(".lm-tshow__nav--prev")?.addEventListener("click", () => show(i - 1));
+    stage.querySelector(".lm-tshow__nav--next")?.addEventListener("click", () => show(i + 1));
+    dots.forEach((d) => d.addEventListener("click", () => show(Number(d.dataset.index))));
+  });
+</script>
+
+<style>
+  .lm-tshow { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-bg); text-align: center; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); margin: 0 0 0.7rem;
+  }
+  .lm-tshow__intro { max-width: 42rem; margin: 0 auto 2.5rem; line-height: 1.7; }
+  .lm-tshow__stage { position: relative; max-width: 68rem; margin: 2rem auto 0; }
+
+  .lm-tshow__viewport { position: relative; }
+  .lm-tshow__slide {
+    display: none;
+    grid-template-columns: 0.85fr 1fr; align-items: center; gap: clamp(1.5rem, 4vw, 3.5rem);
+    position: relative; overflow: hidden;
+    padding: clamp(2rem, 4vw, 3.25rem); border-radius: 1.25rem; text-align: left;
+  }
+  .lm-tshow__slide.active { display: grid; animation: lm-tfade 0.5s ease; }
+  @keyframes lm-tfade { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .lm-tshow__slide.active { animation: none; } }
+
+  /* themes */
+  .lm-tshow__slide--mint { background: #d9ece4; --mark: var(--c-accent); --name: var(--c-primary-deep, #0a5c52); --role: var(--c-accent); --stars: var(--c-accent); --text: #33403d; }
+  .lm-tshow__slide--gold { background: #cdb890; --mark: #ffffff; --name: #ffffff; --role: #f4efe3; --stars: #f4efe3; --text: #2e2a20; }
+
+  .lm-tshow__mark { position: absolute; z-index: 0; height: 5.5rem; width: auto; opacity: 0.55; pointer-events: none; }
+  .lm-tshow__slide--gold .lm-tshow__mark { opacity: 0.8; filter: brightness(0) invert(1); }
+  .lm-tshow__mark--tl { top: 1rem; left: 1.2rem; }
+  .lm-tshow__mark--br { bottom: 1rem; right: 1.2rem; transform: rotate(180deg); }
+
+  .lm-tshow__photo { position: relative; z-index: 1; margin: 0; padding: 0.75rem 0.75rem 1.5rem; background: #fff; box-shadow: 0 16px 34px rgba(0,0,0,0.16); transform: rotate(-2deg); }
+  .lm-tshow__photo img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center 30%; }
+
+  .lm-tshow__content { position: relative; z-index: 1; }
+  .lm-tshow__stars { color: var(--stars); letter-spacing: 0.35em; font-size: 1.1rem; margin: 0 0 0.6rem; }
+  .lm-tshow__name { font-family: var(--f-heading); font-weight: 700; font-style: italic; color: var(--name); font-size: clamp(1.8rem, 3.2vw, 2.4rem); line-height: 1.1; margin: 0; }
+  .lm-tshow__role { color: var(--role); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; margin: 0.5rem 0 1.1rem; }
+  .lm-tshow__role a { color: inherit; text-decoration: underline; }
+  .lm-tshow__quote { margin: 0; color: var(--text); line-height: 1.7; font-size: 1.02rem; }
+
+  .lm-tshow__nav {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+    width: 2.8rem; height: 2.8rem; border-radius: 999px; border: none; cursor: pointer;
+    background: var(--c-primary); color: #fff; font-size: 1.6rem; line-height: 1; display: grid; place-items: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18); transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .lm-tshow__nav:hover { background: var(--c-accent); transform: translateY(-50%) scale(1.06); }
+  .lm-tshow__nav--prev { left: -0.4rem; }
+  .lm-tshow__nav--next { right: -0.4rem; }
+  .lm-tshow__dots { display: flex; gap: 0.55rem; justify-content: center; margin-top: 1.6rem; }
+  .lm-tshow__dot { width: 0.65rem; height: 0.65rem; border-radius: 999px; border: none; padding: 0; background: #c9d6d1; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
+  .lm-tshow__dot.active { background: var(--c-primary); transform: scale(1.25); }
+  .lm-tshow__dot:hover { background: var(--c-accent); }
+
+  @media (max-width: 48rem) {
+    .lm-tshow__slide { grid-template-columns: 1fr; gap: 1.5rem; text-align: center; }
+    .lm-tshow__photo { max-width: 16rem; margin: 0 auto; }
+    .lm-tshow__mark { height: 3.5rem; }
+    .lm-tshow__nav--prev { left: -0.2rem; }
+    .lm-tshow__nav--next { right: -0.2rem; }
+  }
+</style>

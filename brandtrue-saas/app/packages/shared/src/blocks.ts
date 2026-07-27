@@ -639,6 +639,51 @@ export const blockDefs: Record<string, BlockDef> = {
       .passthrough(),
     defaults: { heading: "As featured in", background: "cream", logos: [] },
   },
+  testimonial_showcase: {
+    kind: "testimonial_showcase",
+    label: "Testimonial showcase",
+    description: "A one-at-a-time testimonial carousel with a polaroid photo, stars, name, role and quote on a coloured panel. Alternates mint / gold panels.",
+    fields: {
+      heading: { type: "text", label: "Heading", help: "Optional heading above the carousel." },
+      intro: { type: "text", label: "Intro text", help: "Optional sentence under the heading." },
+      quote_icon: { type: "image", label: "Quote mark image", help: "Decorative quote mark shown in the corners of each panel." },
+      slides: {
+        type: "list",
+        label: "Testimonials",
+        help: "Each shows one at a time.",
+        item: {
+          image: { type: "image", label: "Photo", help: "Client photo, shown as a polaroid." },
+          image_position: { type: "text", label: "Photo focus", help: "e.g. center 20% to keep a face in frame. Optional." },
+          name: { type: "text", label: "Name", help: "First name (or how they should be credited)." },
+          role: { type: "text", label: "Role", help: "e.g. Naturopath, or CEO." },
+          website: { type: "text", label: "Website", help: "Optional. Shown as a link that opens in a new tab." },
+          quote: { type: "text", label: "Quote", help: "The testimonial text." },
+          rating: { type: "number", label: "Stars", help: "1 to 5." },
+        },
+      },
+    },
+    schema: z
+      .object({
+        heading: z.string().default(""),
+        intro: z.string().default(""),
+        quote_icon: image,
+        slides: z
+          .array(
+            z.object({
+              image,
+              image_position: z.string().default(""),
+              name: z.string().default(""),
+              role: z.string().default(""),
+              website: z.string().default(""),
+              quote: z.string().default(""),
+              rating: z.number().min(0).max(5).default(5),
+            }),
+          )
+          .default([]),
+      })
+      .passthrough(),
+    defaults: { heading: "", slides: [] },
+  },
 };
 
 export const blockKinds = Object.keys(blockDefs);

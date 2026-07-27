@@ -21,6 +21,7 @@ import CtaBanner from "./CtaBanner.astro";
 import DeviceCarousel from "./DeviceCarousel.astro";
 import ProseSection from "./ProseSection.astro";
 import LogoStrip from "./LogoStrip.astro";
+import TestimonialShowcase from "./TestimonialShowcase.astro";
 
 interface Props {
   block: RenderBlock;
@@ -51,6 +52,7 @@ const components: Record<string, any> = {
   device_carousel: DeviceCarousel,
   prose_section: ProseSection,
   logo_strip: LogoStrip,
+  testimonial_showcase: TestimonialShowcase,
 };
 
 const Component = components[block.kind];
