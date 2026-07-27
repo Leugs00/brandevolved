@@ -15,6 +15,16 @@ const paragraphs = String(data.body ?? "")
   .map((p) => p.trim())
   .filter(Boolean);
 const hasQuote = !!data.quote;
+
+// Escape HTML, then turn markdown-style [label](https://url) into links that
+// open in a new tab. Only http(s) links are allowed, so the output is safe.
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const withLinks = (p: string) =>
+  esc(p).replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, label, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`,
+  );
 ---
 
 <section class:list={["lm-prose", `lm-prose--bg-${bg}`, `lm-prose--${align}`]}>
@@ -26,7 +36,7 @@ const hasQuote = !!data.quote;
     )}
     {data.heading && <span class="lm-prose__rule" aria-hidden="true"></span>}
     <div class="lm-prose__body" data-field="body" data-anim style="--anim-delay:.15s">
-      {paragraphs.map((p) => <p>{p}</p>)}
+      {paragraphs.map((p) => <p set:html={withLinks(p)} />)}
     </div>
     {hasQuote && (
       <figure class="lm-prose__quote" data-anim style="--anim-delay:.2s">
@@ -59,6 +69,8 @@ const hasQuote = !!data.quote;
   .lm-prose--center .lm-prose__rule { margin-left: auto; margin-right: auto; }
   .lm-prose__body p { line-height: 1.8; margin: 0 0 1.15rem; font-size: 1.02rem; }
   .lm-prose__body p:last-child { margin-bottom: 0; }
+  .lm-prose__body a { color: var(--c-primary); text-decoration: underline; text-underline-offset: 2px; }
+  .lm-prose__body a:hover { color: var(--c-accent); }
 
   /* built-in pull quote */
   .lm-prose__quote { position: relative; margin: 2.5rem 0 0; padding: 1.5rem 0 0 0; }

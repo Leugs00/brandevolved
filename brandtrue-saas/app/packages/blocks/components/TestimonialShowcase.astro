@@ -13,6 +13,14 @@ const slides: Record<string, any>[] = (Array.isArray(data.slides) ? data.slides 
 );
 const stripProtocol = (u: string) => u.replace(/^https?:\/\//, "").replace(/\/$/, "");
 const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const roleLine = (s: Record<string, any>) => {
+  const parts: string[] = [];
+  if (s.role) parts.push(esc(String(s.role)));
+  if (s.website)
+    parts.push(`<a href="${esc(ensureHttp(String(s.website)))}" target="_blank" rel="noopener noreferrer">${esc(stripProtocol(String(s.website)))}</a>`);
+  return parts.join(", ");
+};
 ---
 
 <section class="lm-tshow">
@@ -35,14 +43,7 @@ const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
                 <p class="lm-tshow__stars" aria-label={`${s.rating} out of 5 stars`}>{"★".repeat(Math.round(Number(s.rating)))}</p>
               )}
               <h3 class="lm-tshow__name">{s.name}</h3>
-              {(s.role || s.website) && (
-                <p class="lm-tshow__role">
-                  {s.role}
-                  {s.website && (
-                    <>{s.role ? " " : ""}<a href={ensureHttp(s.website)} target="_blank" rel="noopener noreferrer">{stripProtocol(s.website)}</a></>
-                  )}
-                </p>
-              )}
+              {(s.role || s.website) && <p class="lm-tshow__role" set:html={roleLine(s)} />}
               <blockquote class="lm-tshow__quote">{s.quote}</blockquote>
             </div>
             {quoteIcon.src && <img class="lm-tshow__mark lm-tshow__mark--br" src={quoteIcon.src} alt="" aria-hidden="true" loading="lazy" />}
