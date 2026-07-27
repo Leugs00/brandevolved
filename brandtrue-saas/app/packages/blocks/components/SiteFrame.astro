@@ -246,8 +246,10 @@ const fontFaceCss = fonts
      menu items align with the middle of the Book a Consult button */
   .site-header__bar { display: flex; align-items: center; gap: clamp(0.9rem, 2.2vw, 1.8rem); margin-left: auto; }
   .site-header--overlay {
-    position: absolute; top: 0; left: 0; right: 0; background: transparent;
-    align-items: flex-start; padding-top: 1.6rem;
+    position: absolute; top: 0; left: 0; right: 0;
+    /* faint light gradient so nav stays legible where it crosses a photo */
+    background: linear-gradient(180deg, rgba(248, 243, 236, 0.65) 0%, rgba(248, 243, 236, 0.28) 45%, rgba(248, 243, 236, 0) 100%);
+    align-items: flex-start; padding-top: 1.6rem; padding-bottom: 2.2rem;
   }
   @media (max-width: 46rem) {
     /* keep nav readable when the overlay sits on a photo */
