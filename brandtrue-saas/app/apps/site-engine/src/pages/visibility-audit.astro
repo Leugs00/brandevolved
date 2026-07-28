@@ -1,0 +1,245 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+
+const context = {
+  siteId: site.id,
+  supabaseUrl: env.url,
+  anonKey: env.anonKey,
+  collections: {},
+  forms: {},
+  projects: [],
+  testimonials: [],
+};
+
+const AUDIT_HREF = "/contact";
+
+const report = [
+  { title: "How easy you are to book", body: "Whether someone can quickly understand what you offer and take the next step." },
+  { title: "The trust signals people look for", body: "Reviews, proof, and the small cues that help a stranger feel safe choosing you." },
+  { title: "Whether you show up locally", body: "How you appear in Google and local search when people look for someone like you." },
+  { title: "Whether your brand looks put-together", body: "If your look feels consistent and considered across the places people find you." },
+  { title: "Whether AI tools recommend you", body: "We check how you appear when people ask AI for a trusted provider in your area." },
+  { title: "What your reviews actually say", body: "The themes in your customer voice, and how to use them." },
+];
+
+const steps = [
+  { title: "Tell us where to look", body: "Share your website and a couple of quick details. That is all we need to begin." },
+  { title: "We scan how you show up", body: "We look across your site, local search, reviews, and AI tools, then compare you to similar providers." },
+  { title: "You get your report", body: "A personalised report, styled in your own brand, with your scores and two or three clear things to focus on first." },
+];
+
+const faqs = [
+  { q: "Is it really free?", a: "Yes. The report is genuinely free, and you do not need to book a call to receive it. If you want help acting on it afterward, that is your choice." },
+  { q: "How long does it take?", a: "Starting takes about two minutes. We do the scanning, then send your personalised report." },
+  { q: "Do I need to be good with technology?", a: "Not at all. You share your website, we handle the rest, and your report is written in plain language." },
+  { q: "Will it tell me my brand is bad?", a: "No. Every area is scored as an opportunity, not a grade. The goal is to show you where a small change could help, not to make you feel behind." },
+  { q: "I feel a bit camera-shy and unsure my brand is ready. Is this still for me?", a: "Especially then. This is a private, no-pressure way to see where you stand before you decide to change anything. Many wellness practitioners feel exactly this way, and the report is designed to be kind, not critical." },
+  { q: "What do you do with my information?", a: "We use it only to prepare your report. We do not share it." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={`Free Visibility Audit — ${site.name}`}
+  description="A free visibility audit that shows how visible and trusted you look when someone, or an AI, is deciding whether to book you."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/visibility-audit"
+>
+  <header class="va-hero">
+    <div class="va-hero__inner">
+      <p class="lm-eyebrow" data-anim>Free Visibility Audit</p>
+      <h1 data-anim style="--anim-delay:.1s">Your work speaks for itself. Does your online presence?</h1>
+      <p class="va-hero__sub" data-anim style="--anim-delay:.15s">
+        A free visibility audit that shows how visible and trusted you look when someone, or an AI, is
+        deciding whether to book you. Takes about two minutes to start. Serving wellness businesses
+        across New Zealand, Australia, the US, UK, and Canada.
+      </p>
+      <div class="va-hero__cta" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={AUDIT_HREF}>Get My Free Visibility Audit</a>
+        <p class="va-hero__trust">Free. No sales call required to get your report.</p>
+      </div>
+    </div>
+  </header>
+
+  <section class="va-prose">
+    <div class="va-prose__inner">
+      <h2 data-anim>You get the compliments. But are you getting the bookings?</h2>
+      <span class="va-rule" aria-hidden="true" data-anim></span>
+      <p data-anim>You know your work is good. Your clients tell you so. But online is a different room. People find you, take a quick look, and quietly decide whether to reach out, all before you ever get to speak with them.</p>
+      <p data-anim>And there is a new layer now. More and more people ask AI tools like ChatGPT for a recommendation before they even open Google. If those tools cannot clearly understand who you are and who you help, you simply do not come up.</p>
+      <p data-anim>The hard part is you cannot see any of this happening. You only see the silence.</p>
+      <p data-anim>The Free Visibility Audit shows you what a potential client sees, so the gap between how good you are and how you look online stops costing you bookings.</p>
+    </div>
+  </section>
+
+  <section class="va-report">
+    <div class="va-report__inner">
+      <h2 data-anim>What your free report shows you</h2>
+      <p class="va-report__lead" data-anim>Your report gives each area a simple score out of 100 and a plain-English note on what it means. These are opportunity scores, not grades. They show you where a small change could make the biggest difference.</p>
+      <div class="va-report__grid">
+        {report.map((r, i) => (
+          <div class="va-card" data-anim style={`--anim-delay:${0.08 * i}s`}>
+            <h3>{r.title}</h3>
+            <p>{r.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <ProcessSteps
+    data={{ eyebrow: "How it works", heading: "Three simple steps", steps }}
+    context={context}
+  />
+
+  <section class="va-get">
+    <div class="va-get__inner">
+      <h2 data-anim>What you get at the end</h2>
+      <p class="va-get__lead" data-anim>A clear, friendly report you can actually use. It includes:</p>
+      <ul class="va-get__list" data-anim>
+        <li>Your visibility and trust scores across each area</li>
+        <li>Your AI Search Snapshot, showing whether AI tools can find and recommend you</li>
+        <li>A quick look at how you compare to similar businesses</li>
+        <li>Two or three priorities to start with</li>
+      </ul>
+      <p class="va-get__note" data-anim>No jargon. No pressure. Just a calm, honest picture of where you stand and what to do next.</p>
+    </div>
+  </section>
+
+  <section class="va-tiers">
+    <div class="va-tiers__inner">
+      <h2 data-anim>The free snapshot, and the full audit</h2>
+      <div class="va-tiers__grid">
+        <div class="va-tier" data-anim>
+          <p class="va-tier__tag">Free</p>
+          <h3>Visibility Audit</h3>
+          <p>Think of the free report as a health check. It shows you where you stand today and what deserves attention first.</p>
+        </div>
+        <div class="va-tier va-tier--paid" data-anim style="--anim-delay:.12s">
+          <p class="va-tier__tag">Paid, hands-on</p>
+          <h3>Full Brand Audit</h3>
+          <p>If you want to go deeper, the full Brand Audit is a hands-on review of your whole brand. Your photography, website, messaging, and the details that build trust, all mapped into one clear plan you can follow or hand to us to build.</p>
+        </div>
+      </div>
+      <p class="va-tiers__note" data-anim>Most people start with the free report. If it points to something worth fixing, the full audit is the natural next step. There is no obligation either way.</p>
+      <div class="va-tiers__cta" data-anim>
+        <a class="lm-btn" href={AUDIT_HREF}>Get My Free Visibility Audit</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="va-faq">
+    <div class="va-faq__inner">
+      <h2 data-anim>Common questions</h2>
+      <div class="va-faq__list">
+        {faqs.map((f) => (
+          <details class="va-faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CtaBanner
+    data={{
+      heading: "See how your brand really shows up",
+      body: "You have built something genuinely good. This is a simple, honest way to make sure it looks that way to the people, and the tools, deciding whether to book you. Free. Private. No call required.",
+      buttons: [{ label: "Get My Free Visibility Audit", href: AUDIT_HREF }],
+    }}
+    context={context}
+  />
+</SiteLayout>
+
+<style>
+  .va-hero {
+    background: var(--c-cream);
+    padding: clamp(5rem, 9vw, 7.5rem) 1.5rem clamp(2.8rem, 6vw, 4.5rem);
+    text-align: center;
+  }
+  .va-hero__inner { max-width: 48rem; margin: 0 auto; }
+  .va-hero h1 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(2.1rem, 4.8vw, 3.2rem); line-height: 1.14; margin: 0.5rem 0 0;
+  }
+  .va-hero__sub { font-size: 1.12rem; line-height: 1.65; margin: 1.3rem auto 0; max-width: 42rem; }
+  .va-hero__cta { margin-top: 2rem; }
+  .va-hero__trust { font-size: 0.9rem; color: #5b6b68; margin: 0.9rem 0 0; }
+
+  .va-prose { background: var(--c-bg); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
+  .va-prose__inner { max-width: 44rem; margin: 0 auto; }
+  .va-prose h2, .va-report h2, .va-get h2, .va-tiers h2, .va-faq h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.7rem, 3.2vw, 2.3rem); line-height: 1.2; margin: 0;
+  }
+  .va-rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.3rem 0; }
+  .va-prose p { line-height: 1.8; margin: 0 0 1.1rem; font-size: 1.03rem; }
+  .va-prose p:last-child { margin-bottom: 0; }
+
+  .va-report { background: var(--c-cream); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
+  .va-report__inner { max-width: 66rem; margin: 0 auto; text-align: center; }
+  .va-report__lead { max-width: 44rem; margin: 1rem auto 0; line-height: 1.7; }
+  .va-report__grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1.2rem; margin-top: 2.5rem; text-align: left;
+  }
+  .va-card {
+    background: var(--c-bg); border-radius: 0.9rem; padding: 1.5rem 1.6rem;
+    border: 1px solid rgba(10, 92, 82, 0.08); border-top: 3px solid var(--c-accent);
+  }
+  .va-card h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.15rem; margin: 0 0 0.5rem; }
+  .va-card p { line-height: 1.6; font-size: 0.96rem; margin: 0; }
+
+  .va-get { background: var(--c-bg); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
+  .va-get__inner { max-width: 44rem; margin: 0 auto; }
+  .va-get__lead { line-height: 1.7; margin: 1rem 0 1.2rem; }
+  .va-get__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
+  .va-get__list li { position: relative; padding-left: 1.6rem; line-height: 1.6; }
+  .va-get__list li::before {
+    content: ""; position: absolute; left: 0; top: 0.55em; width: 0.55rem; height: 0.55rem;
+    border-radius: 999px; background: var(--c-accent);
+  }
+  .va-get__note { margin: 1.4rem 0 0; line-height: 1.7; font-style: italic; color: #4a5754; }
+
+  .va-tiers { background: var(--c-cream); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
+  .va-tiers__inner { max-width: 60rem; margin: 0 auto; text-align: center; }
+  .va-tiers__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.4rem; margin-top: 2rem; text-align: left; }
+  .va-tier { background: var(--c-bg); border-radius: 1rem; padding: 1.8rem; border: 1px solid rgba(10, 92, 82, 0.1); }
+  .va-tier--paid { background: var(--c-primary-deep); color: #eef5f3; }
+  .va-tier__tag { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem; font-weight: 700; color: var(--c-accent); margin: 0 0 0.5rem; }
+  .va-tier h3 { font-family: var(--f-heading); font-weight: 600; font-size: 1.5rem; margin: 0 0 0.7rem; color: var(--c-primary); }
+  .va-tier--paid h3 { color: #fff; }
+  .va-tier p { line-height: 1.65; margin: 0; }
+  .va-tiers__note { max-width: 42rem; margin: 1.6rem auto 0; line-height: 1.7; }
+  .va-tiers__cta { margin-top: 1.8rem; }
+
+  .va-faq { background: var(--c-bg); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
+  .va-faq__inner { max-width: 44rem; margin: 0 auto; }
+  .va-faq__list { margin-top: 1.8rem; display: grid; gap: 0.7rem; }
+  .va-faq__item { border: 1px solid rgba(10, 92, 82, 0.12); border-radius: 0.7rem; padding: 0 1.2rem; background: var(--c-cream); }
+  .va-faq__item summary {
+    cursor: pointer; padding: 1.05rem 0; font-weight: 600; color: var(--c-primary);
+    font-family: var(--f-heading); font-size: 1.08rem; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  }
+  .va-faq__item summary::-webkit-details-marker { display: none; }
+  .va-faq__item summary::after { content: "+"; color: var(--c-accent); font-size: 1.4rem; line-height: 1; }
+  .va-faq__item[open] summary::after { content: "–"; }
+  .va-faq__item p { margin: 0 0 1.1rem; line-height: 1.7; }
+
+  @media (max-width: 40rem) {
+    .va-tier--paid { order: 2; }
+  }
+</style>
