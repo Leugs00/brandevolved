@@ -22,7 +22,7 @@ function cellsFor(item: Record<string, any>) {
 }
 ---
 
-<section class="lm-services">
+<section class:list={["lm-services", data.background === "white" ? "lm-services--bg-white" : "lm-services--bg-cream"]}>
   <div class="lm-services__inner">
     {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
     <h2 data-field="heading" data-anim>{data.heading}</h2>
@@ -30,24 +30,28 @@ function cellsFor(item: Record<string, any>) {
     <div class="lm-services__grid">
       {items.map((item, i) => {
         const cells = cellsFor(item);
+        const hasMedia = !!(cells || item.image?.src);
         return (
-        <a class="lm-services__card" href={item.href || "#"} data-anim style={`--anim-delay:${0.15 * i}s`}>
-          <div class="lm-services__media">
-            {cells ? (
-              <div class="lm-services__montage" style={`--cells:${cells.length}`}>
-                {cells.map((cellImgs) => (
-                  <div class="lm-services__cell">
-                    {cellImgs.map((im: any, j: number) => (
-                      <img class:list={{ active: j === 0 }} src={im.src} alt={im.alt ?? item.title ?? ""} loading="lazy" />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              item.image?.src && <img class="lm-services__single" src={item.image.src} alt={item.image.alt ?? item.title ?? ""} loading="lazy" />
-            )}
-          </div>
+        <a class:list={["lm-services__card", { "lm-services__card--text": !hasMedia }]} href={item.href || "#"} data-anim style={`--anim-delay:${0.15 * i}s`}>
+          {hasMedia && (
+            <div class="lm-services__media">
+              {cells ? (
+                <div class="lm-services__montage" style={`--cells:${cells.length}`}>
+                  {cells.map((cellImgs) => (
+                    <div class="lm-services__cell">
+                      {cellImgs.map((im: any, j: number) => (
+                        <img class:list={{ active: j === 0 }} src={im.src} alt={im.alt ?? item.title ?? ""} loading="lazy" />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                item.image?.src && <img class="lm-services__single" src={item.image.src} alt={item.image.alt ?? item.title ?? ""} loading="lazy" />
+              )}
+            </div>
+          )}
           <div class="lm-services__card-body">
+            {item.eyebrow && <span class="lm-services__tag">{item.eyebrow}</span>}
             <h3>{item.title}</h3>
             <p>{item.body}</p>
             <span class="lm-services__link">{item.link_label || "Learn more"} <span class="lm-services__link-arrow" aria-hidden="true">→</span></span>
@@ -94,7 +98,9 @@ function cellsFor(item: Record<string, any>) {
 </script>
 
 <style>
-  .lm-services { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-cream); }
+  .lm-services { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; }
+  .lm-services--bg-cream { background: var(--c-cream); }
+  .lm-services--bg-white { background: var(--c-bg); }
   .lm-services__inner { max-width: 72rem; margin: 0 auto; text-align: center; }
   h2 {
     font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
@@ -127,6 +133,14 @@ function cellsFor(item: Record<string, any>) {
   }
   .lm-services__cell img.active { opacity: 1; }
   @media (prefers-reduced-motion: reduce) { .lm-services__cell img { transition: none; } }
+
+  /* text-forward card when a service has no imagery yet */
+  .lm-services__card--text { border-top: 3px solid var(--c-accent); }
+  .lm-services__card--text .lm-services__card-body { padding-top: 1.7rem; }
+  .lm-services__tag {
+    color: var(--c-accent); font-weight: 700; font-size: 0.72rem;
+    letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.55rem;
+  }
 
   .lm-services__card-body { padding: 1.5rem; display: flex; flex-direction: column; flex: 1; }
   h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.4rem; margin: 0 0 0.6rem; }

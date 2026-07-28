@@ -1,0 +1,109 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import ServiceCards from "@brandevolved/blocks/components/ServiceCards.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import { fetchServices } from "../../lib/fetch.ts";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const services = await fetchServices(db, siteId!);
+
+const context = {
+  siteId: site.id,
+  supabaseUrl: env.url,
+  anonKey: env.anonKey,
+  collections: {},
+  forms: {},
+  projects: [],
+  testimonials: [],
+};
+
+const cards = services.map((s: any) => ({
+  eyebrow: s.category_name,
+  title: s.name,
+  body: s.short_description,
+  href: `/services/${s.slug}`,
+  link_label: "Explore",
+}));
+
+const steps = [
+  { title: "We talk first", body: "A relaxed conversation about your work, where you are stuck, and what a good outcome actually looks like for you." },
+  { title: "We get clear", body: "I map the plan, whether that is brand, website, photography or all three, so you know what we are making and why." },
+  { title: "I make the work", body: "I design and build, sharing as we go, so it always feels like yours and never something handed down." },
+  { title: "You launch, supported", body: "We bring it into the world together, and I make sure you feel confident carrying it on." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={`Services — ${site.name}`}
+  description="Brand strategy, identity, website design and development, photography and search, all from one studio."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/services"
+>
+  <header class="svc-hero">
+    <div class="svc-hero__inner">
+      <p class="lm-eyebrow" data-anim>How I can help</p>
+      <p class="lm-script svc-hero__script" data-anim style="--anim-delay:.1s">made with care</p>
+      <h1 data-anim style="--anim-delay:.15s">One studio for your brand, website and photography</h1>
+      <p class="svc-hero__lead" data-anim style="--anim-delay:.2s">
+        Everything you need to show up online with clarity and confidence, designed and made by
+        one person who actually gets to know your work.
+      </p>
+      <p class="svc-hero__intro" data-anim style="--anim-delay:.25s">
+        I work with practitioners, founders and purpose-led businesses: people who are brilliant at
+        what they do and would rather be doing it than talking about themselves. Brand, website and
+        photography are not separate jobs to me. They are one story told well, so the people you most
+        want to reach can find you, trust you, and feel like they already know you before you have
+        even spoken.
+      </p>
+    </div>
+  </header>
+
+  <ServiceCards data={{ heading: "Where I can help", background: "white", items: cards }} context={context} />
+
+  <ProcessSteps
+    data={{
+      eyebrow: "How we work",
+      heading: "Calm, collaborative, no surprises",
+      intro: "However we start, the shape of the work stays the same.",
+      steps,
+    }}
+    context={context}
+  />
+
+  <CtaBanner
+    data={{
+      heading: "Not sure where to start?",
+      body: "Book a friendly discovery call and we will work out what your brand actually needs, no pressure and no jargon.",
+      buttons: [{ label: "Book a discovery call", href: "/contact" }],
+    }}
+    context={context}
+  />
+</SiteLayout>
+
+<style>
+  .svc-hero {
+    background: var(--c-cream);
+    padding: clamp(3rem, 8vw, 6rem) 1.5rem clamp(2.5rem, 6vw, 4.5rem);
+    text-align: center;
+  }
+  .svc-hero__inner { max-width: 46rem; margin: 0 auto; }
+  .svc-hero h1 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(2.1rem, 4.6vw, 3.1rem); line-height: 1.14; margin: 0.3rem 0 0;
+  }
+  .svc-hero__script { margin: 0.2rem 0 0; }
+  .svc-hero__lead {
+    font-size: 1.15rem; line-height: 1.6; margin: 1.3rem auto 0; max-width: 40rem; color: var(--c-text);
+  }
+  .svc-hero__intro { line-height: 1.8; margin: 1.3rem auto 0; max-width: 42rem; }
+</style>

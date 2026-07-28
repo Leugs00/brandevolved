@@ -36,6 +36,27 @@ export async function fetchTestimonials(db: any, siteId: string): Promise<Render
   }));
 }
 
+/** Loads published services (from public_services) ordered for display. */
+export async function fetchServices(db: any, siteId: string): Promise<any[]> {
+  const { data } = await db
+    .from("public_services")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("sort_order", { nullsFirst: false });
+  return data ?? [];
+}
+
+/** Loads a single published service by slug (from public_services), or null. */
+export async function fetchServiceBySlug(db: any, siteId: string, slug: string): Promise<any | null> {
+  const { data } = await db
+    .from("public_services")
+    .select("*")
+    .eq("site_id", siteId)
+    .eq("slug", slug)
+    .maybeSingle();
+  return data ?? null;
+}
+
 /** Loads published projects (from public_* views) as RenderProject[]. */
 export async function fetchProjects(db: any, siteId: string): Promise<RenderProject[]> {
   const [{ data: projects }, { data: svc }, { data: res }] = await Promise.all([

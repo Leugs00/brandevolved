@@ -1,0 +1,148 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+
+export async function getStaticPaths() {
+  const env = readEnv(import.meta.env as Record<string, string | undefined>);
+  const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+  if (!siteId) return [];
+  const db = createAnonClient(env);
+  const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+  const { data: services } = await db
+    .from("public_services")
+    .select("*")
+    .eq("site_id", siteId)
+    .order("sort_order", { nullsFirst: false });
+
+  return (services ?? []).map((service: any) => ({
+    params: { slug: service.slug },
+    props: { site, service },
+  }));
+}
+
+const { site, service } = Astro.props as any;
+const paragraphs = String(service.full_description ?? "")
+  .split(/\n\s*\n/)
+  .map((p: string) => p.trim())
+  .filter(Boolean);
+const deliverables: string[] = Array.isArray(service.deliverables) ? service.deliverables : [];
+
+const context = {
+  siteId: site.id,
+  supabaseUrl: env.url,
+  anonKey: env.anonKey,
+  collections: {},
+  forms: {},
+  projects: [],
+  testimonials: [],
+};
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={service.seo_title || `${service.name} — ${site.name}`}
+  description={service.seo_description || service.short_description}
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath={`/services/${service.slug}`}
+>
+  <article class="svc">
+    <header class="svc__head">
+      <a class="svc__back" href="/services">← All services</a>
+      {service.category_name && <p class="svc__cat">{service.category_name}</p>}
+      <h1>{service.name}</h1>
+      {service.short_description && <p class="svc__lead">{service.short_description}</p>}
+    </header>
+
+    {service.featured_image_url && <img class="svc__hero" src={service.featured_image_url} alt={service.name} />}
+
+    <div class="svc__body">
+      <div class="svc__prose">
+        {paragraphs.map((p: string) => <p>{p}</p>)}
+      </div>
+
+      <aside class="svc__aside">
+        {deliverables.length > 0 && (
+          <div class="svc__panel">
+            <h2>What is included</h2>
+            <ul>
+              {deliverables.map((d: string) => <li>{d}</li>)}
+            </ul>
+          </div>
+        )}
+        {service.ideal_for && (
+          <div class="svc__panel svc__panel--soft">
+            <h2>Who it is for</h2>
+            <p>{service.ideal_for}</p>
+          </div>
+        )}
+      </aside>
+    </div>
+  </article>
+
+  <CtaBanner
+    data={{
+      heading: "Think this might be the one?",
+      body: "Book a friendly, no-pressure call and we will talk through whether it is the right fit for where you are.",
+      buttons: [
+        { label: service.cta_text || "Book a discovery call", href: service.cta_url || "/contact" },
+        { label: "See all services", href: "/services" },
+      ],
+    }}
+    context={context}
+  />
+</SiteLayout>
+
+<style>
+  .svc {
+    max-width: 60rem; margin: 0 auto; padding: clamp(5rem, 9vw, 7.5rem) 1.25rem 3rem;
+    font-family: var(--f-body); color: var(--c-text);
+  }
+  .svc__back { color: var(--c-primary); text-decoration: none; font-size: 0.9rem; }
+  .svc__back:hover { color: var(--c-accent); }
+  .svc__cat {
+    text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.75rem; font-weight: 700;
+    color: var(--c-accent); margin: 1.6rem 0 0.4rem;
+  }
+  .svc h1 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(2.1rem, 5vw, 3rem); line-height: 1.14; margin: 0;
+  }
+  .svc__lead { font-size: 1.2rem; line-height: 1.6; margin: 1rem 0 0; max-width: 42rem; }
+  .svc__hero { width: 100%; border-radius: 0.9rem; margin: 1.8rem 0 0; }
+
+  .svc__body {
+    display: grid; grid-template-columns: 1.6fr 1fr; gap: clamp(1.8rem, 4vw, 3.5rem);
+    align-items: start; margin-top: clamp(1.8rem, 4vw, 3rem);
+  }
+  .svc__prose p { line-height: 1.85; margin: 0 0 1.15rem; font-size: 1.03rem; }
+  .svc__prose p:last-child { margin-bottom: 0; }
+
+  .svc__aside { display: grid; gap: 1.2rem; position: sticky; top: 6rem; }
+  .svc__panel {
+    background: var(--c-cream); border-radius: 0.9rem; padding: 1.6rem 1.7rem;
+    border: 1px solid rgba(10, 92, 82, 0.08);
+  }
+  .svc__panel h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: 1.15rem; margin: 0 0 0.9rem;
+  }
+  .svc__panel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+  .svc__panel li { position: relative; padding-left: 1.4rem; line-height: 1.5; font-size: 0.96rem; }
+  .svc__panel li::before {
+    content: ""; position: absolute; left: 0; top: 0.55em; width: 0.5rem; height: 0.5rem;
+    border-radius: 999px; background: var(--c-accent);
+  }
+  .svc__panel--soft { background: var(--c-bg); border-color: rgba(10, 92, 82, 0.12); }
+  .svc__panel--soft p { margin: 0; line-height: 1.6; font-size: 0.98rem; }
+
+  @media (max-width: 46rem) {
+    .svc__body { grid-template-columns: 1fr; }
+    .svc__aside { position: static; }
+  }
+</style>
