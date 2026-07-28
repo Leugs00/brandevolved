@@ -4,106 +4,98 @@ import ServiceCards from "@brandevolved/blocks/components/ServiceCards.astro";
 import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
 import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
 import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
-import { fetchServices } from "../../lib/fetch.ts";
+import "../../styles/service.css";
 
 const env = readEnv(import.meta.env as Record<string, string | undefined>);
 const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
 const db = createAnonClient(env);
 const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
 if (!site) return new Response("Not found", { status: 404 });
-const services = await fetchServices(db, siteId!);
+const context = { siteId: site.id, supabaseUrl: env.url, anonKey: env.anonKey, collections: {}, forms: {}, projects: [], testimonials: [] };
 
-const context = {
-  siteId: site.id,
-  supabaseUrl: env.url,
-  anonKey: env.anonKey,
-  collections: {},
-  forms: {},
-  projects: [],
-  testimonials: [],
-};
+const DISCOVERY = "/contact";
+const AUDIT = "/visibility-audit";
 
-const cards = services.map((s: any) => ({
-  eyebrow: s.category_name,
-  title: s.name,
-  body: s.short_description,
-  href: `/services/${s.slug}`,
-  link_label: "Explore",
-}));
+const cards = [
+  { title: "Brand Photography", body: "Real photos of you and your practice. No stock, no guessing.", href: "/services/brand-photography", link_label: "Learn more" },
+  { title: "Brand & Design", body: "A logo, colours, and templates that actually match, and stay that way.", href: "/services/brand-and-design", link_label: "Learn more" },
+  { title: "Website Design & Development", body: "A site that works as hard as you do, built to be found and to convert.", href: "/services/website-design-and-development", link_label: "Learn more" },
+];
 
 const steps = [
-  { title: "We talk first", body: "A relaxed conversation about your work, where you are stuck, and what a good outcome actually looks like for you." },
-  { title: "We get clear", body: "I map the plan, whether that is brand, website, photography or all three, so you know what we are making and why." },
-  { title: "I make the work", body: "I design and build, sharing as we go, so it always feels like yours and never something handed down." },
-  { title: "You launch, supported", body: "We bring it into the world together, and I make sure you feel confident carrying it on." },
+  { title: "Discovery Call", body: "We map your story, your ideal client, and where your current brand is losing trust." },
+  { title: "Build", body: "Photography, brand, and website come together as one system, not three separate projects." },
+  { title: "Launch & Grow", body: "You go live with a brand that finally feels like one thing, because it is." },
 ];
+
+const proof = [
+  { lead: "She goes beyond the requested development.", quote: "Working with Lori is like working with a friend. She listens deeply and brings her ideas and vision to the table in all we do, whether it's photography, styling, website design, or other collateral. Our relationship is a partnership, not a briefing transaction.", name: "Tui Fleming", role: "Strengths & Authentic Leadership Coach and Yoga Teacher", website: "tuifleming.com" },
+  { lead: "My business secret weapon.", quote: "It's so much easier going to one provider for all my tech and visuals. It's a streamlined approach that saves me both money and time as everything needed is in-house.", name: "Carolyn Cox", role: "CEO", website: "greenbusinesshq.com" },
+];
+const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
 ---
 
 <SiteLayout
   siteName={site.name}
   siteId={site.id}
-  title={`Services — ${site.name}`}
-  description="Brand strategy, identity, website design and development, photography and search, all from one studio."
+  title="Services — One Team, Three Services for Wellness Brands — Lola Media Design"
+  description="Photography, brand, and website design for wellness businesses, working together from the start. One team, three services, no handoffs lost in translation."
   settings={(site.settings as any) ?? {}}
   supabaseUrl={env.url}
   anonKey={env.anonKey}
   currentPath="/services"
 >
-  <header class="svc-hero">
-    <div class="svc-hero__inner">
-      <p class="lm-eyebrow" data-anim>How I can help</p>
-      <p class="lm-script svc-hero__script" data-anim style="--anim-delay:.1s">made with care</p>
-      <h1 data-anim style="--anim-delay:.15s">One studio for your brand, website and photography</h1>
-      <p class="svc-hero__lead" data-anim style="--anim-delay:.2s">
-        Everything you need to show up online with clarity and confidence, designed and made by
-        one person who actually gets to know your work.
-      </p>
-      <p class="svc-hero__intro" data-anim style="--anim-delay:.25s">
-        I work with practitioners, founders and purpose-led businesses: people who are brilliant at
-        what they do and would rather be doing it than talking about themselves. Brand, website and
-        photography are not separate jobs to me. They are one story told well, so the people you most
-        want to reach can find you, trust you, and feel like they already know you before you have
-        even spoken.
-      </p>
+  <header class="sp-hero">
+    <div class="sp-hero__inner">
+      <p class="lm-eyebrow" data-anim>Services</p>
+      <h1 data-anim style="--anim-delay:.1s">One Team. Three Services.</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">Photography, brand, and website design for wellness businesses, working together from the start, not stitched together after the fact.</p>
+      <div class="sp-ctas" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={DISCOVERY}>Book a Discovery Call</a>
+        <a class="lm-btn lm-btn--outline" href={AUDIT}>Get Your Free Visibility Audit</a>
+      </div>
     </div>
   </header>
 
-  <ServiceCards data={{ heading: "Where I can help", background: "white", items: cards }} context={context} />
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Why one roof beats three vendors</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Most businesses end up with a photographer, a designer, and a web developer who have never spoken to each other. Every handoff loses something. Your photos don't quite match your brand. Your brand doesn't quite match your site. Nothing feels like one thing.</p>
+        <p data-anim>One team building all three together means nothing gets lost in translation, because there's no translation needed.</p>
+      </div>
+    </div>
+  </section>
 
-  <ProcessSteps
-    data={{
-      eyebrow: "How we work",
-      heading: "Calm, collaborative, no surprises",
-      intro: "However we start, the shape of the work stays the same.",
-      steps,
-    }}
-    context={context}
-  />
+  <ServiceCards data={{ heading: "The three services", background: "cream", items: cards }} context={context} />
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>Proof</h2>
+      <div class="sp-proof">
+        {proof.map((p, i) => (
+          <div class="sp-proof__item" data-anim style={`--anim-delay:${0.1 * i}s`}>
+            <p class="sp-proof__lead">{p.lead}</p>
+            <p class="sp-proof__quote">{p.quote}</p>
+            <p class="sp-proof__name">{p.name}</p>
+            <p class="sp-proof__role">
+              {p.role}{p.website && <>, <a href={ensureHttp(p.website)} target="_blank" rel="noopener noreferrer">{p.website}</a></>}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <ProcessSteps data={{ eyebrow: "How it works", heading: "How it works", steps }} context={context} />
 
   <CtaBanner
     data={{
-      heading: "Not sure where to start?",
-      body: "Book a friendly discovery call and we will work out what your brand actually needs, no pressure and no jargon.",
-      buttons: [{ label: "Book a discovery call", href: "/contact" }],
+      heading: "Ready to stop juggling three vendors?",
+      body: "Book a friendly discovery call, or get your free visibility audit to see how your brand shows up first.",
+      buttons: [{ label: "Book a Discovery Call", href: DISCOVERY }, { label: "Get Your Free Visibility Audit", href: AUDIT }],
     }}
     context={context}
   />
 </SiteLayout>
-
-<style>
-  .svc-hero {
-    background: var(--c-cream);
-    padding: clamp(3rem, 8vw, 6rem) 1.5rem clamp(2.5rem, 6vw, 4.5rem);
-    text-align: center;
-  }
-  .svc-hero__inner { max-width: 46rem; margin: 0 auto; }
-  .svc-hero h1 {
-    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
-    font-size: clamp(2.1rem, 4.6vw, 3.1rem); line-height: 1.14; margin: 0.3rem 0 0;
-  }
-  .svc-hero__script { margin: 0.2rem 0 0; }
-  .svc-hero__lead {
-    font-size: 1.15rem; line-height: 1.6; margin: 1.3rem auto 0; max-width: 40rem; color: var(--c-text);
-  }
-  .svc-hero__intro { line-height: 1.8; margin: 1.3rem auto 0; max-width: 42rem; }
-</style>
