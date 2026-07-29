@@ -1,0 +1,107 @@
+---
+import "../styles/global.css";
+import { groupedNav, isAgency } from "../lib/nav.ts";
+
+interface Props {
+  title: string;
+  /** current site context, when inside a site */
+  site?: { id: string; name: string } | null;
+  active?: string;
+}
+
+const { title, site, active = "" } = Astro.props;
+const { user, membership, db } = Astro.locals;
+const role = membership?.role;
+const navGroups = site ? groupedNav(role) : [];
+
+// starred databases get quick links in the sidebar
+const { data: starredDbs } = site
+  ? await db.from("collections").select("id, name").eq("site_id", site.id).eq("starred", true).order("name")
+  : { data: null };
+const brandName = import.meta.env.PUBLIC_BRAND_NAME || "Lola Media";
+const roleLabel: Record<string, string> = {
+  super_admin: "Super admin",
+  agency_developer: "Developer",
+  designer: "Designer",
+  client: "Client",
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · {brandName}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="min-h-screen flex">
+      <aside class="w-56 shrink-0 bg-brand-900 text-white flex flex-col">
+        <a href="/" class="px-5 py-4 border-b border-white/10">
+          <span class="font-serif text-xl font-semibold tracking-wide">{brandName}</span>
+          <span class="text-accent text-lg leading-none"> ◆</span>
+        </a>
+        {site && (
+          <div class="px-5 py-3 border-b border-white/10">
+            <p class="text-[11px] uppercase tracking-[0.14em] text-white/50">Site</p>
+            <p class="text-sm font-medium truncate">{site.name}</p>
+          </div>
+        )}
+        <nav class="flex-1 py-3 overflow-y-auto">
+          {site ? (
+            navGroups.map((grp) => (
+              <div class={grp.group ? "mt-3" : ""}>
+                {grp.group && <p class="px-5 pb-1 text-[11px] uppercase tracking-[0.14em] text-white/40">{grp.group}</p>}
+                {grp.items.map((item) => {
+                  const href = item.href(site.id);
+                  const isActive = active === item.match;
+                  return (
+                    <a
+                      href={href}
+                      class:list={[
+                        "block px-5 py-2 text-sm border-l-2",
+                        isActive
+                          ? "bg-white/10 font-semibold border-(--brand-accent)"
+                          : "border-transparent text-white/75 hover:bg-white/10 hover:text-white",
+                      ]}
+                    >
+                      {item.label}
+                    </a>
+                  );
+                })}
+              </div>
+            ))
+          ) : (
+            <a href="/" class="block px-5 py-2 text-sm bg-white/10 font-semibold border-l-2 border-(--brand-accent)">Sites</a>
+          )}
+          {!site && isAgency(role) && (
+            <a href="/team" class:list={["block px-5 py-2 text-sm border-l-2", active === "team" ? "bg-white/10 font-semibold border-(--brand-accent)" : "border-transparent text-white/75 hover:bg-white/10 hover:text-white"]}>Team</a>
+          )}
+          {site && starredDbs && starredDbs.length > 0 && (
+            <div class="mt-3 pt-3 border-t border-white/10">
+              <p class="px-5 pb-1 text-[11px] uppercase tracking-[0.14em] text-white/40">Starred</p>
+              {starredDbs.map((c) => (
+                <a href={`/sites/${site.id}/collections/${c.id}`} class="block px-5 py-1.5 text-sm border-l-2 border-transparent text-white/75 hover:bg-white/10 hover:text-white">
+                  <span class="text-accent">★</span> {c.name}
+                </a>
+              ))}
+            </div>
+          )}
+          {site && <a href="/" class="mt-2 block px-5 py-2 text-sm border-l-2 border-transparent text-white/75 hover:bg-white/10 hover:text-white">← All sites</a>}
+        </nav>
+        <div class="px-5 py-4 border-t border-white/10 text-xs text-white/70">
+          <p class="truncate">{user?.email}</p>
+          <p class="mt-0.5 text-white/45">{role ? roleLabel[role] : "No role"}</p>
+          <form method="post" action="/logout" class="mt-2">
+            <button class="underline underline-offset-2 hover:text-white" type="submit">Sign out</button>
+          </form>
+        </div>
+      </aside>
+      <main class="flex-1 min-w-0">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

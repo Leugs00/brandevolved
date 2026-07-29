@@ -1,0 +1,177 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import "../styles/service.css";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const context = { siteId: site.id, supabaseUrl: env.url, anonKey: env.anonKey, collections: {}, forms: {}, projects: [], testimonials: [] };
+
+const BOOK = "/contact";
+
+const lookAt = [
+  { title: "Your website", body: "Whether it is clear, easy to book from, and building trust." },
+  { title: "Your brand look", body: "Whether your photos, colours, and style feel consistent and considered everywhere people find you." },
+  { title: "Your social media", body: "What is working, what is not, and where your effort is best spent." },
+  { title: "Your Google presence", body: "Your reviews, your Google Business Profile, and how you show up in local search." },
+  { title: "Your search visibility", body: "Whether people can find you on Google, and whether AI tools recommend you." },
+  { title: "Your competitors", body: "How two similar providers show up, and where your opening is." },
+  { title: "The money side", body: "A grounded estimate of what the gaps may be costing you, so you can prioritise with confidence." },
+];
+
+const steps = [
+  { title: "Book your audit", body: "Choose a time and complete a short intake so we know your goals." },
+  { title: "We dig in before we meet", body: "We review your website, socials, search presence, reviews, and two competitors, so the session is spent on answers, not catch-up." },
+  { title: "We meet for your strategy session", body: "We walk through the findings together and shape your priorities in plain language." },
+  { title: "You get your plan", body: "Your recording, written action plan, and prioritised fixes land in your inbox, ready to use." },
+];
+
+const faqs = [
+  { q: "How is this different from the free audit?", a: "The free audit is a quick automated snapshot. The Deep Brand Audit is a hands-on review of your whole brand plus a live brand strategy session and a written plan built around your goals." },
+  { q: "Is this just a sales pitch in disguise?", a: "No. It is a working session. You leave with a real plan you can act on yourself, whether or not you ever work with us." },
+  { q: "Do I need to prepare anything?", a: "Just complete the short intake when you book, and come with your questions. We handle the research." },
+  { q: "What if I want to do the work myself afterward?", a: "That is completely fine. The action plan and step-by-step fixes are designed for exactly that." },
+  { q: "Does the $495 really come off a project?", a: "Yes. If you go ahead with us, the full amount is credited toward your first invoice." },
+  { q: "Which of my channels do you review?", a: "Your website, your active social media, your Google presence, your search and AI visibility, and two competitors for comparison." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title="Deep Brand Audit & Brand Strategy Session NZ — Lola Media Design"
+  description="A paid brand strategy session and deep brand audit for wellness businesses. A live strategy call plus a written action plan across your website, social, search and reviews. $495 NZD, credited toward your project."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/deep-brand-audit"
+>
+  <header class="sp-hero">
+    <div class="sp-hero__inner">
+      <p class="lm-eyebrow" data-anim>Deep Brand Audit</p>
+      <h1 data-anim style="--anim-delay:.1s">Stop guessing why your brand isn't booking. Get a clear plan in one session.</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">The Deep Brand Audit shows you exactly what's helping and what's holding your bookings back, across your website, social media, search, and reviews. You leave with a prioritised plan you can act on straight away.</p>
+      <p class="sp-price" data-anim style="--anim-delay:.2s">$495 NZD <span>Fully credited toward your project if you decide to work with us.</span></p>
+      <div class="sp-ctas" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={BOOK}>Book My Deep Brand Audit</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>You're doing the work. So why is it so quiet?</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>You post. You update your site. You show up. But the bookings do not match the effort, and you cannot quite see why.</p>
+        <p data-anim>Maybe your website looks lovely but does not lead anyone to book. Maybe you have great reviews sitting on Google that nobody sees. Maybe you are pouring hours into social media that is not bringing people in. When you cannot see the whole picture, every fix is a guess, and guessing is exhausting.</p>
+        <p data-anim>The Deep Brand Audit replaces the guessing with a clear, honest picture and a plan. So the effort you are already making finally starts working for you.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>What the Deep Brand Audit is</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>It is a focused brand strategy session, backed by a deep review of your entire online presence. Think of it as a brand consultation with a plan attached.</p>
+        <p data-anim>Before we talk, we study your brand from the outside, the way a potential client sees it. Then we sit down together on a call and walk through what is working, what is quietly costing you bookings, and what to do first. You leave with a written plan, not just a nice chat.</p>
+        <p data-anim>This is not a sales call. Whether or not you ever hire us to do the work, you walk away with a plan you can follow yourself.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>What we look at</h2>
+      <p class="sp-lead" data-anim>We review your whole brand as one connected system, not just one piece of it.</p>
+      <div class="sp-cards">
+        {lookAt.map((c, i) => (
+          <div class="sp-card" data-anim style={`--anim-delay:${0.06 * i}s`}>
+            <h3>{c.title}</h3>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>What you walk away with</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <p data-anim style="line-height:1.7">Real, usable takeaways. Not homework you will never open.</p>
+      <ul class="sp-list" data-anim>
+        <li><strong>A recording of your session,</strong> so you can revisit everything we discussed.</li>
+        <li><strong>A written action plan,</strong> clear and jargon-free, mapping what to improve.</li>
+        <li><strong>Prioritised step-by-step fixes,</strong> in order, so you always know the next right move.</li>
+        <li><strong>A clear view of the opportunity,</strong> including where small changes could bring the biggest lift in bookings.</li>
+      </ul>
+    </div>
+  </section>
+
+  <ProcessSteps data={{ eyebrow: "The process", heading: "How it works", steps }} context={context} />
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow sp-center">
+      <h2 class="sp-h2" data-anim>The $495 comes back to you</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim style="margin-left:auto;margin-right:auto"></span>
+      <div class="sp-prose" style="text-align:left">
+        <p data-anim>If you decide you would rather hand the work to us, the full $495 is credited toward your project. So the audit either gives you a plan to run with yourself, or becomes the first step of your brand refresh. There is no wrong outcome.</p>
+      </div>
+      <div class="sp-ctas" data-anim style="margin-top:1.6rem"><a class="lm-btn" href={BOOK}>Book My Deep Brand Audit</a></div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>This is for you if</h2>
+      <ul class="sp-list" data-anim>
+        <li>You are a wellness practitioner, coach, or clinic owner who wants more bookings, not just compliments.</li>
+        <li>You have tried a few things but are not sure what is actually working.</li>
+        <li>You want a clear, expert second opinion before you spend more time or money.</li>
+        <li>You would rather follow a plan than keep guessing.</li>
+      </ul>
+      <p class="sp-note" data-anim>It is probably not for you if you are brand new with no website or online presence yet. In that case, start with a discovery call instead and we will point you the right way.</p>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Already did the free audit?</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>The <a href="/visibility-audit" style="color:var(--c-primary);text-decoration:underline">free visibility audit</a> gives you a quick snapshot of where you stand. The Deep Brand Audit is the full picture, the brand strategy session, and the plan. If your free report raised more questions than it answered, this is the natural next step.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2 sp-center" data-anim>Common questions</h2>
+      <div class="sp-faq__list">
+        {faqs.map((f) => (
+          <details class="sp-faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CtaBanner
+    data={{
+      heading: "Ready to see the full picture?",
+      body: "One session. One clear plan. A calm, honest look at what is working and what to fix first. $495 NZD, fully credited toward your project if you go ahead.",
+      buttons: [{ label: "Book My Deep Brand Audit", href: BOOK }],
+    }}
+    context={context}
+  />
+</SiteLayout>

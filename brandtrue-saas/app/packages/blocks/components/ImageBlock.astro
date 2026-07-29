@@ -1,0 +1,28 @@
+---
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const img = data.image ?? {};
+---
+
+<figure class="be-image">
+  {img.src ? (
+    <img src={img.src} alt={img.alt ?? ""} loading="lazy" data-field="image" />
+  ) : (
+    <div class="be-image__placeholder" data-field="image">Add an image</div>
+  )}
+  {data.caption && <figcaption data-field="caption">{data.caption}</figcaption>}
+</figure>
+
+<style>
+  .be-image { max-width: 52rem; margin: 2rem auto; padding: 0 1.25rem; text-align: center; }
+  .be-image img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+  .be-image__placeholder {
+    background: #f1f5f9; color: #94a3b8; border: 2px dashed #cbd5e1;
+    border-radius: 0.5rem; padding: 4rem 1rem; font-family: system-ui, sans-serif;
+  }
+  figcaption { font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem; font-family: var(--f-body, system-ui, sans-serif); }
+</style>

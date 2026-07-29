@@ -1,0 +1,20 @@
+{
+  "name": "@brandevolved/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./supabase": "./src/supabase.ts",
+    "./blocks": "./src/blocks.ts",
+    "./content": "./src/content.ts",
+    "./email": "./src/email.ts",
+    "./wp-import": "./src/wp-import.ts",
+    "./database.types": "./src/database.types.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "zod": "^3.24.0"
+  }
+}

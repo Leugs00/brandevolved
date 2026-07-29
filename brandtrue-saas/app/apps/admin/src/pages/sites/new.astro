@@ -1,0 +1,148 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import { isAgency } from "../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+if (!membership || !isAgency(membership.role)) return Astro.redirect("/");
+
+const orgId = membership.organization_id;
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const siteName = String(form.get("site_name") ?? "").trim();
+  const slug = String(form.get("slug") ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-") || "main";
+  const template = String(form.get("template") ?? "starter");
+  let clientId = String(form.get("client_id") ?? "");
+  const newClientName = String(form.get("new_client_name") ?? "").trim();
+
+  if (!siteName) error = "Site name is required.";
+
+  if (!error && newClientName) {
+    const { data: client, error: e } = await db
+      .from("clients")
+      .insert({
+        organization_id: orgId,
+        name: newClientName,
+        slug: newClientName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      })
+      .select("id")
+      .single();
+    if (e) error = e.message;
+    else clientId = client.id;
+  }
+  if (!error && !clientId) error = "Pick a client or enter a new client name.";
+
+  if (!error) {
+    const { data: site, error: e } = await db
+      .from("sites")
+      .insert({ organization_id: orgId, client_id: clientId, name: siteName, slug })
+      .select("id")
+      .single();
+    if (e) error = e.message;
+    else {
+      if (template === "starter") {
+        const mkPage = async (path: string, title: string, blocks: { kind: string; data: unknown }[]) => {
+          const { data: page } = await db
+            .from("pages")
+            .insert({ organization_id: orgId, site_id: site.id, path, title, status: "published" })
+            .select("id")
+            .single();
+          if (!page) return;
+          await db.from("content_blocks").insert(
+            blocks.map((b, i) => ({
+              organization_id: orgId,
+              site_id: site.id,
+              page_id: page.id,
+              kind: b.kind,
+              position: (i + 1) * 10,
+              data: b.data as never,
+            })),
+          );
+        };
+
+        await mkPage("/", siteName, [
+          { kind: "hero", data: { heading: siteName, subheading: "Edit this headline in the visual editor.", cta_label: "Get in touch", cta_href: "/contact", align: "center", image: { src: "", alt: "" } } },
+          { kind: "features", data: { heading: "What we do", items: [{ title: "Service one", body: "Describe it here." }, { title: "Service two", body: "Describe it here." }, { title: "Service three", body: "Describe it here." }] } },
+          { kind: "cta", data: { heading: "Ready to start?", body: "", button_label: "Contact us", button_href: "/contact" } },
+        ]);
+        await mkPage("/about", `About · ${siteName}`, [
+          { kind: "text", data: { html: "<h1>About us</h1><p>Tell your story…</p>" } },
+        ]);
+        await mkPage("/contact", `Contact · ${siteName}`, [
+          { kind: "text", data: { html: "<h1>Contact</h1><p>We'd love to hear from you.</p>" } },
+          { kind: "form_embed", data: { heading: "Send a message", form_slug: "contact" } },
+        ]);
+
+        await db.from("forms").insert({
+          organization_id: orgId,
+          site_id: site.id,
+          name: "Contact form",
+          slug: "contact",
+          fields: [
+            { name: "name", label: "Your name", type: "text", required: true },
+            { name: "email", label: "Email", type: "email", required: true },
+            { name: "message", label: "Message", type: "textarea", required: true },
+          ] as never,
+        });
+        await db.from("collections").insert({
+          organization_id: orgId,
+          site_id: site.id,
+          name: "Testimonials",
+          slug: "testimonials",
+          kind: "testimonial",
+          item_schema: [
+            { name: "quote", label: "Quote", type: "textarea", required: true },
+            { name: "author", label: "Author", type: "text", required: true },
+            { name: "role", label: "Role / company", type: "text" },
+          ] as never,
+        });
+      }
+      return Astro.redirect(`/sites/${site.id}`);
+    }
+  }
+}
+
+const { data: clients } = await db.from("clients").select("id, name").order("name");
+---
+
+<AdminLayout title="New site">
+  <div class="p-8 max-w-xl">
+    <a href="/" class="text-sm text-slate-500 hover:text-slate-800">← Sites</a>
+    <h1 class="text-2xl font-bold tracking-tight mt-1 mb-6">New site</h1>
+
+    {error && <p class="mb-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+
+    <form method="post" class="rounded-xl border border-slate-200 bg-white p-6 space-y-4">
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Site name</span>
+        <input name="site_name" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" placeholder="Acme Plumbing" />
+      </label>
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Slug</span>
+        <input name="slug" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" placeholder="main" value="main" />
+      </label>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Existing client</span>
+          <select name="client_id" class="w-full rounded-lg border border-slate-300 px-2.5 py-2">
+            <option value="">—</option>
+            {(clients ?? []).map((c) => <option value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">…or new client name</span>
+          <input name="new_client_name" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" placeholder="Acme Ltd" />
+        </label>
+      </div>
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Template</span>
+        <select name="template" class="w-full rounded-lg border border-slate-300 px-2.5 py-2">
+          <option value="starter">Starter — home, about, contact + form & testimonials</option>
+          <option value="blank">Blank</option>
+        </select>
+      </label>
+      <button class="w-full rounded-lg bg-brand-700 px-4 py-2.5 font-semibold text-white hover:bg-brand-800">Create site</button>
+    </form>
+  </div>
+</AdminLayout>

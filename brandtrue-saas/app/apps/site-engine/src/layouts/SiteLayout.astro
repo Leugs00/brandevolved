@@ -1,0 +1,29 @@
+---
+import SiteFrame from "@brandevolved/blocks/components/SiteFrame.astro";
+import type { SiteSettings } from "../lib/fetch.ts";
+
+interface Props {
+  siteName: string;
+  siteId: string;
+  title: string;
+  description?: string | null;
+  settings: SiteSettings;
+  supabaseUrl: string;
+  anonKey: string;
+  currentPath: string;
+}
+
+const { siteName, siteId, title, description, settings, supabaseUrl, anonKey, currentPath } = Astro.props;
+---
+
+<SiteFrame siteName={siteName} title={title} description={description} settings={settings} currentPath={currentPath}>
+  <meta
+    slot="head"
+    name="be-analytics"
+    data-site-id={siteId}
+    data-supabase-url={supabaseUrl}
+    data-supabase-key={anonKey}
+  />
+  <slot />
+  <script slot="body-end" src="/beacon.js" defer is:inline></script>
+</SiteFrame>

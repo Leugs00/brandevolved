@@ -1,0 +1,133 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const bg = data.bg_image ?? {};
+const slides: Record<string, any>[] = (Array.isArray(data.slides) ? data.slides : []).filter(
+  (s) => s?.image?.src,
+);
+// where the transparent device screen sits inside the photo, in % of the image
+const left = Number(data.screen_left ?? 35.35);
+const top = Number(data.screen_top ?? 28.56);
+const width = Number(data.screen_width ?? 28.83);
+const height = Number(data.screen_height ?? 40.23);
+// the screenshot layer sits BEHIND the device photo, expanded a touch on the
+// sides + bottom so the bezel overlaps its (square) edges. The top stays at the
+// glass line so the site header at the top of each screenshot isn't clipped.
+const oh = Number(data.overhang ?? 1.6); // % expansion
+const screenStyle = `left:${left - oh}%;top:${top}%;width:${width + oh * 2}%;height:${height + oh}%`;
+---
+
+<section class="lm-device">
+  <div class="lm-device__head">
+    {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+    {data.intro && <p class="lm-device__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+  </div>
+  {slides.length === 0 && context.editable && (
+    <p class="lm-device__warn">Add slides (website screenshots) to this block in the side panel.</p>
+  )}
+  {bg.src && slides.length > 0 && (
+    <div class="lm-device__stage" data-anim style="--anim-delay:.2s">
+      <div class="lm-device__screen" style={screenStyle} aria-live="polite">
+        {slides.map((s, i) => (
+          <img
+            class:list={["lm-device__slide", { active: i === 0 }]}
+            src={s.image.src}
+            alt={s.image.alt ?? s.label ?? ""}
+            loading="lazy"
+            data-index={i}
+          />
+        ))}
+      </div>
+      <img class="lm-device__frame" src={bg.src} alt={bg.alt ?? ""} loading="lazy" />
+      {slides.length > 1 && (
+        <>
+          <button class="lm-device__nav lm-device__nav--prev" type="button" aria-label="Previous website">‹</button>
+          <button class="lm-device__nav lm-device__nav--next" type="button" aria-label="Next website">›</button>
+          <div class="lm-device__dots" role="tablist">
+            {slides.map((s, i) => (
+              <button
+                class:list={["lm-device__dot", { active: i === 0 }]}
+                type="button"
+                data-index={i}
+                aria-label={`Show website ${i + 1}${s.label ? ` — ${s.label}` : ""}`}
+              ></button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )}
+  {data.cta_label && (
+    <div class="lm-device__cta" data-anim>
+      <a class="lm-btn" href={data.cta_href || "/work"}><span data-field="cta_label">{data.cta_label}</span></a>
+    </div>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll(".lm-device__stage").forEach((stage) => {
+    const slides = [...stage.querySelectorAll<HTMLElement>(".lm-device__slide")];
+    const dots = [...stage.querySelectorAll<HTMLElement>(".lm-device__dot")];
+    if (slides.length < 2) return;
+    let index = 0;
+    const show = (next: number) => {
+      index = (next + slides.length) % slides.length;
+      slides.forEach((s, i) => s.classList.toggle("active", i === index));
+      dots.forEach((d, i) => d.classList.toggle("active", i === index));
+    };
+    stage.querySelector(".lm-device__nav--prev")?.addEventListener("click", () => show(index - 1));
+    stage.querySelector(".lm-device__nav--next")?.addEventListener("click", () => show(index + 1));
+    dots.forEach((d) => d.addEventListener("click", () => show(Number(d.dataset.index))));
+  });
+</script>
+
+<style>
+  .lm-device { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-bg); }
+  .lm-device__head { text-align: center; max-width: 46rem; margin: 0 auto 2.5rem; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); margin: 0 0 0.8rem;
+  }
+  .lm-device__intro { line-height: 1.75; margin: 0; }
+  .lm-device__warn { max-width: 40rem; margin: 0 auto; background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .lm-device__stage { position: relative; max-width: 72rem; margin: 0 auto; }
+  /* the device photo sits ON TOP; its transparent screen reveals the shot behind */
+  .lm-device__frame { position: relative; z-index: 1; width: 100%; height: auto; display: block; pointer-events: none; }
+  .lm-device__screen { position: absolute; z-index: 0; overflow: hidden; background: #f2f2f2; }
+  .lm-device__slide {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: top center;
+    opacity: 0; transition: opacity 0.45s ease;
+  }
+  .lm-device__slide.active { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .lm-device__slide { transition: none; } }
+  .lm-device__nav {
+    position: absolute; top: 46%; transform: translateY(-50%); z-index: 2;
+    width: 2.9rem; height: 2.9rem; border-radius: 999px; border: none;
+    background: var(--c-primary); color: #fff; font-size: 1.7rem; line-height: 1;
+    cursor: pointer; display: grid; place-items: center;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .lm-device__nav:hover { background: var(--c-accent); transform: translateY(-50%) scale(1.06); }
+  .lm-device__nav--prev { left: clamp(0.4rem, 2vw, 1.5rem); }
+  .lm-device__nav--next { right: clamp(0.4rem, 2vw, 1.5rem); }
+  .lm-device__dots {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: clamp(0.6rem, 2.5vw, 1.6rem); z-index: 2;
+    display: flex; gap: 0.55rem; padding: 0.45rem 0.8rem;
+    background: rgba(255, 255, 255, 0.75); border-radius: 999px; backdrop-filter: blur(3px);
+  }
+  .lm-device__dot {
+    width: 0.65rem; height: 0.65rem; border-radius: 999px; border: none; padding: 0;
+    background: #b9cfc9; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .lm-device__dot.active { background: var(--c-primary); transform: scale(1.25); }
+  .lm-device__dot:hover { background: var(--c-accent); }
+  .lm-device__cta { text-align: center; margin-top: 2.25rem; }
+</style>

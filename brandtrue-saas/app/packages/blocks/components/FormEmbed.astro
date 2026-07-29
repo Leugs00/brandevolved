@@ -1,0 +1,104 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const form = context.forms[String(data.form_slug ?? "")];
+const fields = form?.fields ?? [];
+---
+
+<section class="be-form">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  {!form ? (
+    context.editable && <p class="be-form__warn">No form with slug “{data.form_slug}” on this site.</p>
+  ) : (
+    <form
+      class="be-form__form"
+      data-be-form
+      data-form-id={form.id}
+      data-supabase-url={context.supabaseUrl}
+      data-supabase-key={context.anonKey}
+      data-success={form.success_message}
+    >
+      {fields.map((f) => (
+        <label>
+          <span>{f.label}{f.required ? " *" : ""}</span>
+          {f.type === "textarea" ? (
+            <textarea name={f.name} required={f.required} rows={5} />
+          ) : (
+            <input type={f.type === "email" ? "email" : f.type === "tel" ? "tel" : "text"} name={f.name} required={f.required} />
+          )}
+        </label>
+      ))}
+      {form.honeypot_enabled && (
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;" />
+      )}
+      <button type="submit">Send</button>
+      <p class="be-form__status" role="status" aria-live="polite"></p>
+    </form>
+  )}
+</section>
+
+{!context.editable && form && (
+  <script>
+    document.querySelectorAll<HTMLFormElement>("form[data-be-form]").forEach((formEl) => {
+      formEl.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const status = formEl.querySelector<HTMLElement>(".be-form__status")!;
+        const button = formEl.querySelector<HTMLButtonElement>("button[type=submit]")!;
+        const fd = new FormData(formEl);
+        if ((fd.get("website") as string)?.length) return; // honeypot
+        fd.delete("website");
+        const data = Object.fromEntries(fd.entries());
+        button.disabled = true;
+        status.textContent = "Sending…";
+        try {
+          const res = await fetch(`${formEl.dataset.supabaseUrl}/rest/v1/form_submissions`, {
+            method: "POST",
+            headers: {
+              apikey: formEl.dataset.supabaseKey!,
+              Authorization: `Bearer ${formEl.dataset.supabaseKey!}`,
+              "Content-Type": "application/json",
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({
+              form_id: formEl.dataset.formId,
+              data,
+              source_path: location.pathname,
+            }),
+          });
+          if (!res.ok) throw new Error(await res.text());
+          formEl.querySelectorAll("input, textarea").forEach((el) => ((el as HTMLInputElement).value = ""));
+          status.textContent = formEl.dataset.success || "Thank you!";
+        } catch {
+          status.textContent = "Something went wrong — please try again.";
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+  </script>
+)}
+
+<style>
+  .be-form { max-width: 34rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-form h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 1.5rem; }
+  .be-form__warn { background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .be-form__form { display: flex; flex-direction: column; gap: 1rem; position: relative; }
+  label { display: flex; flex-direction: column; gap: 0.3rem; color: var(--c-text, #1f2937); font-weight: 500; }
+  input, textarea {
+    border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.65rem 0.8rem;
+    font: inherit; background: #fff; color: #1f2937;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--c-primary, #008378); border-color: transparent; }
+  button {
+    background: var(--c-primary, #008378); color: #fff; border: 0; border-radius: 999px;
+    padding: 0.8rem 1.5rem; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; }
+  .be-form__status { min-height: 1.2rem; margin: 0; color: var(--c-primary, #008378); font-weight: 500; }
+</style>

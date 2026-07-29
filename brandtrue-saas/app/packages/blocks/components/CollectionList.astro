@@ -1,0 +1,51 @@
+---
+import { filterItems, type RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const collection = context.collections[String(data.collection_slug ?? "")];
+const limit = Number(data.limit) > 0 ? Number(data.limit) : 12;
+const items = filterItems(collection?.items ?? [], data.filter_field, data.filter_value).slice(
+  0,
+  limit,
+) as Record<string, any>[];
+---
+
+<section class="be-collection">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  {!collection && context.editable && (
+    <p class="be-collection__warn">No database with slug “{data.collection_slug}” on this site — check the Databases page.</p>
+  )}
+  <div class:list={["be-collection__items", `be-collection__items--${data.layout === "list" ? "list" : "grid"}`]}>
+    {items.map((item) => (
+      <article class="be-collection__card">
+        {item.image?.src && <img src={item.image.src} alt={item.image.alt ?? ""} loading="lazy" />}
+        <div class="be-collection__body">
+          <h3>{item.title ?? item.name}</h3>
+          {item.price != null && <p class="be-collection__price">{item.price}</p>}
+          {item.description && <p>{item.description}</p>}
+          {item.link && <a href={item.link}>View →</a>}
+        </div>
+      </article>
+    ))}
+  </div>
+</section>
+
+<style>
+  .be-collection { max-width: 64rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-collection h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 2rem; }
+  .be-collection__warn { background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .be-collection__items--grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 1.5rem; }
+  .be-collection__items--list { display: flex; flex-direction: column; gap: 1.25rem; }
+  .be-collection__card { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden; }
+  .be-collection__card img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+  .be-collection__body { padding: 1.1rem 1.25rem 1.25rem; }
+  .be-collection__body h3 { margin: 0 0 0.4rem; color: var(--c-text, #1f2937); }
+  .be-collection__body p { margin: 0 0 0.6rem; color: #4b5563; line-height: 1.55; }
+  .be-collection__price { font-weight: 700; color: var(--c-primary, #008378); }
+  .be-collection__body a { color: var(--c-primary, #008378); font-weight: 600; text-decoration: none; }
+</style>

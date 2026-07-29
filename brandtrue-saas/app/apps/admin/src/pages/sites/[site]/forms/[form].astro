@@ -1,0 +1,164 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const canEdit = canEditStructure(membership?.role);
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+  if (action === "settings" && canEdit) {
+    let fields: unknown = undefined;
+    try {
+      fields = JSON.parse(String(form.get("fields") ?? "[]"));
+      if (!Array.isArray(fields)) throw new Error("fields must be a list");
+    } catch (e) {
+      error = `Fields JSON invalid: ${e instanceof Error ? e.message : e}`;
+    }
+    if (!error) {
+      const { error: e } = await db
+        .from("forms")
+        .update({
+          name: String(form.get("name") ?? "").trim(),
+          success_message: String(form.get("success_message") ?? "").trim(),
+          notify_emails: String(form.get("notify_emails") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+          creates_lead: form.get("creates_lead") === "on",
+          creates_contact: form.get("creates_contact") === "on",
+          honeypot_enabled: form.get("honeypot_enabled") === "on",
+          fields: fields as never,
+        })
+        .eq("id", Astro.params.form!);
+      error = e?.message ?? null;
+    }
+  } else if (action === "submission-status") {
+    const status = String(form.get("status")) as "new" | "seen" | "archived";
+    await db.from("form_submissions").update({ status }).eq("id", String(form.get("id")));
+  } else if (action === "delete-form" && canEdit) {
+    await db.from("form_submissions").delete().eq("form_id", Astro.params.form!);
+    await db.from("forms").delete().eq("id", Astro.params.form!);
+    return Astro.redirect(`/sites/${site.id}/forms`);
+  }
+  if (!error && action === "settings") return Astro.redirect(`/sites/${site.id}/forms/${Astro.params.form}`);
+}
+
+const { data: formRow } = await db
+  .from("forms")
+  .select("*")
+  .eq("id", Astro.params.form!)
+  .eq("site_id", site.id)
+  .maybeSingle();
+if (!formRow) return Astro.redirect(`/sites/${site.id}/forms`);
+
+const { data: submissions } = await db
+  .from("form_submissions")
+  .select("id, data, status, source_path, created_at")
+  .eq("form_id", formRow.id)
+  .order("created_at", { ascending: false })
+  .limit(200);
+
+const fieldNames: string[] = Array.isArray(formRow.fields)
+  ? (formRow.fields as { name: string }[]).map((f) => f.name)
+  : [];
+
+const submissionRows = (submissions ?? []).map((s) => {
+  const d = (s.data ?? {}) as Record<string, string>;
+  return {
+    id: s.id,
+    status: s.status,
+    source_path: s.source_path,
+    when: new Date(s.created_at).toLocaleDateString("en-NZ"),
+    values: fieldNames.map((n) => d[n] ?? ""),
+  };
+});
+---
+
+<AdminLayout title={`${formRow.name} · ${site.name}`} site={site} active="forms">
+  <div class="p-8 max-w-5xl space-y-8">
+    <div>
+      <a href={`/sites/${site.id}/forms`} class="text-sm text-slate-500 hover:text-slate-800">← Forms</a>
+      <h1 class="text-2xl font-bold tracking-tight mt-1">{formRow.name}</h1>
+      <p class="text-sm text-slate-500">Embed with a “Form” block using slug <code class="bg-slate-100 px-1.5 py-0.5 rounded">{formRow.slug}</code></p>
+    </div>
+
+    {canEdit && (
+      <form method="post" class="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+        <input type="hidden" name="action" value="settings" />
+        {error && <p class="text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm">
+            <span class="block text-xs text-slate-500 mb-1">Name</span>
+            <input name="name" value={formRow.name} class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5" />
+          </label>
+          <label class="block text-sm">
+            <span class="block text-xs text-slate-500 mb-1">Notify emails (comma-separated; sent via Resend once configured)</span>
+            <input name="notify_emails" value={(formRow.notify_emails ?? []).join(", ")} class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5" />
+          </label>
+        </div>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Success message</span>
+          <input name="success_message" value={formRow.success_message} class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Fields (JSON — name, label, type: text/email/tel/textarea, required)</span>
+          <textarea name="fields" rows={6} class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs">{JSON.stringify(formRow.fields, null, 2)}</textarea>
+        </label>
+        <div class="flex flex-wrap gap-5 text-sm">
+          <label class="flex items-center gap-2"><input type="checkbox" name="creates_lead" checked={formRow.creates_lead} /> Creates an enquiry (lead)</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="creates_contact" checked={formRow.creates_contact} /> Adds to contacts</label>
+          <label class="flex items-center gap-2"><input type="checkbox" name="honeypot_enabled" checked={formRow.honeypot_enabled} /> Spam honeypot</label>
+        </div>
+        <div class="flex justify-between">
+          <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save form</button>
+        </div>
+      </form>
+    )}
+
+    <section>
+      <h2 class="font-semibold mb-3">Submissions</h2>
+      <div class="rounded-xl border border-slate-200 bg-white overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-slate-100">
+              {fieldNames.map((n) => <th class="px-4 py-2.5 font-medium capitalize">{n}</th>)}
+              <th class="px-4 py-2.5 font-medium">From</th>
+              <th class="px-4 py-2.5 font-medium">Date</th>
+              <th class="px-4 py-2.5 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {submissionRows.map((s) => (
+              <tr class="border-b border-slate-50 align-top">
+                {s.values.map((v) => <td class="px-4 py-2.5 max-w-[16rem]"><span class="line-clamp-3">{v}</span></td>)}
+                <td class="px-4 py-2.5 text-slate-500">{s.source_path}</td>
+                <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">{s.when}</td>
+                <td class="px-4 py-2.5">
+                  <form method="post">
+                    <input type="hidden" name="action" value="submission-status" />
+                    <input type="hidden" name="id" value={s.id} />
+                    <select name="status" class="rounded-lg border border-slate-300 px-2 py-1 text-xs" onchange="this.form.submit()">
+                      {["new", "seen", "archived"].map((st) => <option value={st} selected={st === s.status}>{st}</option>)}
+                    </select>
+                  </form>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {(!submissions || submissions.length === 0) && <p class="px-4 py-6 text-slate-500 text-sm">No submissions yet.</p>}
+      </div>
+    </section>
+
+    {canEdit && (
+      <form method="post" onsubmit="return confirm('Delete this form and ALL its submissions?')">
+        <input type="hidden" name="action" value="delete-form" />
+        <button class="text-sm text-red-600 hover:underline">Delete form</button>
+      </form>
+    )}
+  </div>
+</AdminLayout>

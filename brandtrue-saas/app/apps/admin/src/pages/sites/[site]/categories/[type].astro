@@ -1,0 +1,128 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import Field from "../../../../components/Field.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+import { CATEGORY_TYPES, slugify, statusStyle } from "../../../../lib/content.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const cfg = CATEGORY_TYPES[Astro.params.type!];
+if (!cfg) return Astro.redirect(`/sites/${site.id}`);
+if (!canEditStructure(membership?.role)) return Astro.redirect(`/sites/${site.id}`);
+
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+  const id = String(form.get("id") ?? "");
+
+  if (action === "delete") {
+    const { error: e } = await db.from(cfg.table).delete().eq("id", id);
+    // FK restrict / in-use → friendly message
+    error = e ? "This can't be deleted because it is still used by existing content. Reassign that content first." : null;
+  } else {
+    const name = String(form.get("name") ?? "").trim();
+    const slug = slugify(String(form.get("slug") ?? "") || name);
+    const description = String(form.get("description") ?? "").trim() || null;
+    const sort_order = Number(form.get("sort_order") ?? 0) || 0;
+    if (!name) error = "Please enter a name.";
+    else {
+      const row: Record<string, unknown> = { name, slug, description, sort_order };
+      if (cfg.hasStatus) row.status = String(form.get("status") ?? "published");
+      if (action === "update") {
+        const { error: e } = await db.from(cfg.table).update(row).eq("id", id);
+        error = e?.message ?? null;
+      } else {
+        row.organization_id = site.organization_id;
+        row.site_id = site.id;
+        const { error: e } = await db.from(cfg.table).insert(row as never);
+        error = e ? "That page address is already used by another item here." : null;
+      }
+    }
+  }
+  if (!error) return Astro.redirect(`/sites/${site.id}/categories/${Astro.params.type}`);
+}
+
+const { data: rows } = await db
+  .from(cfg.table)
+  .select("*")
+  .eq("site_id", site.id)
+  .order("sort_order");
+---
+
+<AdminLayout title={`${cfg.title} · ${site.name}`} site={site} active={cfg.match}>
+  <div class="p-8 max-w-3xl">
+    <h1 class="font-serif text-3xl font-semibold tracking-tight">{cfg.title}</h1>
+    <p class="mt-1 text-sm text-slate-500 max-w-xl">{cfg.intro}</p>
+
+    {error && <p class="mt-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+
+    <div class="mt-6 rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      {(rows ?? []).length === 0 && (
+        <p class="px-5 py-8 text-sm text-slate-500 text-center">Nothing here yet — add your first one below.</p>
+      )}
+      {(rows ?? []).map((r: any) => (
+        <details class="group">
+          <summary class="flex items-center gap-3 px-5 py-3 cursor-pointer list-none hover:bg-slate-50">
+            <span class="text-slate-300 text-xs tabular-nums w-6">{r.sort_order}</span>
+            <span class="font-medium grow">{r.name}</span>
+            {cfg.hasStatus && r.status && (
+              <span class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", statusStyle[r.status]]}>{r.status}</span>
+            )}
+            <span class="text-xs text-slate-400 group-open:hidden">Edit</span>
+          </summary>
+          <form method="post" class="px-5 pb-4 pt-1 bg-slate-50/60">
+            <input type="hidden" name="action" value="update" />
+            <input type="hidden" name="id" value={r.id} />
+            <div class="grid sm:grid-cols-2 gap-x-4">
+              <Field label="Name" help="A clear name visitors and administrators will understand." required>
+                <input name="name" value={r.name} required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </Field>
+              <Field label="Page address" help="Used in links and filters. Lowercase words separated by hyphens.">
+                <input name="slug" value={r.slug} class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </Field>
+              <Field label="Display order" help="Lower numbers appear first.">
+                <input name="sort_order" type="number" value={r.sort_order} class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              </Field>
+              {cfg.hasStatus && (
+                <Field label="Status" help="Only published categories appear on the public website.">
+                  <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    {["draft", "published", "archived"].map((s) => <option value={s} selected={r.status === s}>{s}</option>)}
+                  </select>
+                </Field>
+              )}
+              <Field label="Description" help="Explain when this category should be used." optional class="sm:col-span-2">
+                <textarea name="description" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">{r.description ?? ""}</textarea>
+              </Field>
+            </div>
+            <div class="flex items-center gap-3">
+              <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Save</button>
+              <button name="action" value="delete" formnovalidate onclick="return confirm('Delete this item? Content using it must be reassigned first.')" class="text-sm text-red-500 hover:underline">Delete</button>
+            </div>
+          </form>
+        </details>
+      ))}
+    </div>
+
+    <form method="post" class="mt-6 rounded-xl border-2 border-dashed border-slate-300 bg-white p-5">
+      <input type="hidden" name="action" value="create" />
+      <h2 class="text-sm font-semibold text-slate-700 mb-3">Add a new {cfg.title.toLowerCase().replace(/s$/, "")}</h2>
+      <div class="grid sm:grid-cols-2 gap-x-4">
+        <Field label="Name" help="A clear name visitors and administrators will understand." required>
+          <input name="name" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </Field>
+        <Field label="Display order" help="Lower numbers appear first. Leave at 0 if order doesn't matter." optional>
+          <input name="sort_order" type="number" value="0" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </Field>
+        <Field label="Description" help="Explain when this category should be used." optional class="sm:col-span-2">
+          <textarea name="description" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </Field>
+      </div>
+      <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add</button>
+    </form>
+  </div>
+</AdminLayout>

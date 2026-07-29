@@ -1,0 +1,199 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const image = data.image ?? {};
+const side = data.image_side === "left" ? "left" : "right";
+const bg = String(data.background ?? "cream");
+const framed = data.image_style === "framed";
+const wash = data.wash_image ?? {};
+const fullBg = data.bg_full ?? {};
+const isFullBg = !!fullBg.src;
+const paragraphs = String(data.body ?? "")
+  .split(/\n\s*\n/)
+  .map((p) => p.trim())
+  .filter(Boolean);
+---
+
+<section
+  class:list={[
+    "lm-intro",
+    `lm-intro--img-${side}`,
+    `lm-intro--bg-${bg}`,
+    { "lm-intro--washed": !!wash.src, "lm-intro--wide-img": data.image_width === "wide", "lm-intro--narrow-img": data.image_width === "narrow", "lm-intro--fullbg": isFullBg },
+  ]}
+  style={[wash.src ? `--wash:url('${wash.src}')` : "", isFullBg ? `--fullbg:url('${fullBg.src}')` : ""].filter(Boolean).join(";")}
+>
+  <div class="lm-intro__content">
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    <h2 data-field="heading" data-anim>{data.heading}</h2>
+    {data.script_line && data.script_position === "under_heading" && (
+      <p class="lm-script lm-intro__script lm-intro__script--under-heading" data-field="script_line" data-anim style="--anim-delay:.15s">{data.script_line}</p>
+    )}
+    <span class="lm-intro__rule" aria-hidden="true"></span>
+    <div class="lm-intro__body" data-field="body" data-anim style="--anim-delay:.15s">
+      {paragraphs.map((p) =>
+        p.startsWith("~") ? (
+          <p class="lm-script lm-intro__inline-script">{p.replace(/^~\s*/, "")}</p>
+        ) : (
+          <p>{p}</p>
+        ),
+      )}
+    </div>
+    {data.script_line && data.script_position !== "under_heading" && (
+      <p class="lm-script lm-intro__script" data-field="script_line" data-anim style="--anim-delay:.3s">{data.script_line}</p>
+    )}
+    {(data.cta_label || data.cta2_label) && (
+      <div class="lm-intro__ctas" data-anim style="--anim-delay:.3s">
+        {data.cta_label && (
+          data.cta2_label ? (
+            <a class="lm-btn" href={data.cta_href || "#"}>
+              <span data-field="cta_label">{data.cta_label}</span>
+            </a>
+          ) : (
+            // no secondary → the arrow rides with the primary button
+            <a class="lm-rise" href={data.cta_href || "#"}>
+              <span class="lm-btn"><span data-field="cta_label">{data.cta_label}</span></span>
+              {data.arrow_image?.src && <img class="lm-rise__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />}
+            </a>
+          )
+        )}
+        {data.cta2_label && (
+          data.cta2_style === "link" ? (
+            // secondary text link: underline + rise (with arrow) on hover
+            <a class="lm-rise" href={data.cta2_href || "#"}>
+              <span class="lm-secondary" data-field="cta2_label">{data.cta2_label}</span>
+              {data.arrow_image?.src && <img class="lm-rise__arrow" src={data.arrow_image.src} alt="" aria-hidden="true" loading="lazy" />}
+            </a>
+          ) : (
+            <a class="lm-btn lm-btn--outline" href={data.cta2_href || "#"}>
+              <span data-field="cta2_label">{data.cta2_label}</span>
+            </a>
+          )
+        )}
+      </div>
+    )}
+  </div>
+  {image.src && !isFullBg && (
+    <div class:list={["lm-intro__media", { "lm-intro__media--framed": framed }]}>
+      {framed ? (
+        <figure class="lm-intro__polaroid" data-anim>
+          <img
+            src={image.src}
+            alt={image.alt ?? ""}
+            loading="lazy"
+            style={data.image_position ? `object-position:${data.image_position}` : undefined}
+          />
+          {data.image_caption && <figcaption>{data.image_caption}</figcaption>}
+        </figure>
+      ) : (
+        <img
+          src={image.src}
+          alt={image.alt ?? ""}
+          loading="lazy"
+          style={data.image_position ? `object-position:${data.image_position}` : undefined}
+        />
+      )}
+    </div>
+  )}
+</section>
+
+<style>
+  .lm-intro {
+    display: grid; grid-template-columns: 1fr 1fr; align-items: center; overflow: hidden;
+  }
+  .lm-intro--bg-cream { background: var(--c-cream); }
+  .lm-intro--bg-white { background: var(--c-bg); }
+  .lm-intro--img-left .lm-intro__media { order: -1; }
+  .lm-intro__content { position: relative; z-index: 1; padding: clamp(2.5rem, 6vw, 5.5rem); max-width: 40rem; justify-self: center; }
+  .lm-intro__media { position: relative; z-index: 1; }
+  /* watercolor bleeds off the right edge of the whole section (source is
+     transparent on the left, so it fades into the page with no seam) */
+  .lm-intro--washed { position: relative; overflow: hidden; }
+  .lm-intro--washed::before {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 70%; z-index: 0;
+    background: var(--wash) right top / cover no-repeat;
+  }
+  /* one side gets the bigger share of the row (image-right → image wide;
+     image-left → text wide, since the image track comes first) */
+  @media (min-width: 46rem) {
+    .lm-intro--wide-img { grid-template-columns: 5fr 7fr; }
+    /* narrow image = wider text column (~57%). Side-aware: the media track is
+       first in source order for image-left (order:-1), second for image-right. */
+    .lm-intro--narrow-img.lm-intro--img-right { grid-template-columns: 7fr 5fr; }
+    .lm-intro--narrow-img.lm-intro--img-left { grid-template-columns: 5fr 7fr; }
+  }
+  /* compound selector beats the later `.lm-intro__script { text-align:right }` */
+  .lm-intro__script.lm-intro__script--under-heading { text-align: left; margin: 0.9rem 0 0; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.6rem); line-height: 1.18; margin: 0; white-space: pre-line;
+  }
+  .lm-intro__rule { display: block; width: 5.5rem; height: 2px; background: var(--c-accent); margin: 1.4rem 0; }
+  .lm-intro__body p { line-height: 1.75; margin: 0 0 1.1rem; }
+  /* a "~ real. intentional. inspired." line renders as a standalone gold script */
+  .lm-intro__inline-script { margin: 0.4rem 0 1.4rem !important; line-height: 1.1; }
+  .lm-intro__script { text-align: right; margin: 1rem -0.5rem 0 0; }
+  .lm-intro--img-left .lm-intro__script { text-align: left; margin-right: 0; }
+  .lm-intro__ctas { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: 1.6rem; }
+
+  /* full-bleed background variant (text in a left container over the photo) */
+  .lm-intro--fullbg {
+    display: block; background: var(--fullbg) center / cover no-repeat; min-height: 34rem;
+    display: flex; align-items: center;
+  }
+  /* text sits directly on the photo's empty (left) space — no panel */
+  .lm-intro--fullbg .lm-intro__content {
+    max-width: 34rem; justify-self: start; margin: clamp(2rem, 5vw, 4rem) 0 clamp(2rem, 5vw, 4rem) clamp(1rem, 4vw, 3rem);
+  }
+  @media (max-width: 46rem) {
+    .lm-intro--fullbg {
+      background-position: 72% center;
+    }
+    .lm-intro--fullbg .lm-intro__content {
+      margin: 0; max-width: none;
+      background: linear-gradient(180deg, rgba(248,243,236,0.92) 72%, rgba(248,243,236,0.55));
+    }
+  }
+  .lm-intro__media { align-self: stretch; min-height: 24rem; }
+  /* framed: polaroid-style photo with a handwritten caption on the bottom border */
+  .lm-intro__media--framed { align-self: center; min-height: 0; padding: clamp(1.25rem, 3vw, 2.5rem); }
+  /* the source photo already carries its own polaroid frame + tape + sprig,
+     so don't add a second frame — just drop a soft shadow and print the
+     caption underneath, aligned to the photo. */
+  .lm-intro__polaroid {
+    width: 100%; max-width: 32rem; margin: 0 auto; display: block;
+    background: transparent; padding: 0;
+    filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.16));
+  }
+  .lm-intro__polaroid img {
+    width: 100%; height: auto; display: block; -webkit-mask-image: none; mask-image: none;
+  }
+  .lm-intro__polaroid figcaption {
+    font-family: var(--f-body); font-size: 0.85rem; line-height: 1.55; color: #6b7268;
+    padding: 1rem 0.6rem 0; text-align: left; max-width: 26rem;
+  }
+  .lm-intro__media img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    -webkit-mask-image: linear-gradient(95deg, transparent 0%, #000 12%);
+    mask-image: linear-gradient(95deg, transparent 0%, #000 12%);
+  }
+  .lm-intro--img-left .lm-intro__media img {
+    -webkit-mask-image: linear-gradient(265deg, transparent 0%, #000 12%);
+    mask-image: linear-gradient(265deg, transparent 0%, #000 12%);
+  }
+  @media (max-width: 46rem) {
+    .lm-intro { grid-template-columns: 1fr; }
+    .lm-intro__media { order: -1; min-height: 0; }
+    .lm-intro__media img, .lm-intro--img-left .lm-intro__media img {
+      max-height: 22rem;
+      -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+      mask-image: linear-gradient(180deg, #000 82%, transparent 100%);
+    }
+  }
+</style>

@@ -1,0 +1,30 @@
+---
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const items: any[] = Array.isArray(data.items) ? data.items : [];
+---
+
+<section class="be-features">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  <div class="be-features__grid">
+    {items.map((item) => (
+      <div class="be-features__item">
+        <h3>{item.title}</h3>
+        <p>{item.body}</p>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .be-features { max-width: 64rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-features h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 2rem; }
+  .be-features__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.5rem; }
+  .be-features__item { background: #f8fafc; border-radius: 0.75rem; padding: 1.5rem; }
+  .be-features__item h3 { margin: 0 0 0.5rem; color: var(--c-primary, #008378); }
+  .be-features__item p { margin: 0; color: var(--c-text, #1f2937); line-height: 1.6; }
+</style>

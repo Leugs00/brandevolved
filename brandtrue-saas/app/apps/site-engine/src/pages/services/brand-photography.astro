@@ -1,0 +1,197 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import "../../styles/service.css";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const context = { siteId: site.id, supabaseUrl: env.url, anonKey: env.anonKey, collections: {}, forms: {}, projects: [], testimonials: [] };
+
+const DISCOVERY = "/contact";
+const AUDIT = "/visibility-audit";
+
+const steps = [
+  { title: "Discovery Call", body: "We map your story, your ideal client, and the specific images you need most." },
+  { title: "Shoot", body: "A relaxed, guided session, planned around a mood board so you both know the look you are going for before the camera comes out." },
+  { title: "Deliver", body: "Professionally edited images, ready to use on your website, in your emails, and across social media, not just one of those." },
+];
+
+const proof = [
+  { lead: "I would totally recommend Lori for your brand photos.", quote: "Lori has a really relaxed and calm nature and a great eye for colours and composition. I was so pleased with the photos I received.", name: "Wick Nixon", role: "Founder, Wicked Wellbeing" },
+  { lead: "Fun and in all honesty, magical!", quote: "From planning through to delivery, the process was smooth and easy with just the right amount of guidance. Your playfulness and sensitivity made the whole experience relaxed, and you exceeded all of my expectations.", name: "Amanda Jane", role: "Wellness Spa" },
+  { lead: "Seriously the best branding photographer in Auckland!", quote: "Working with Lori is an absolute pleasure, every time. She goes above and beyond and manages to capture the perfect images.", name: "Yaela Raber", role: "Wellness Coach, CEO of OHM" },
+];
+
+const faqs = [
+  { q: "How much does brand photography cost?", a: "Packages start at $499 for a quick headshot and brand image session, up to $1,500 for a full multi-location shoot. Most wellness clients start with the Startup package if it is for a new website, or Brand Boost for a fast refresh." },
+  { q: "Do I need professional photos for my wellness website?", a: "Yes, if you want visitors to trust you before they book. A website full of stock photos or an old selfie makes even excellent practitioners look less credible than they are." },
+  { q: "How often should I refresh my brand photos?", a: "Most clients refresh once a year, or twice a year if they post content often. If your practice, your look, or your offerings have changed, that is a good sign it is time." },
+  { q: "Can you help me use these photos on my website and in my email newsletters, not just social media?", a: "Yes. Your photos should work everywhere you show up, not just Instagram. We make sure you leave with images sized and ready for your website and your email newsletters too." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title="Brand Photography & Professional Headshots NZ — Lola Media Design"
+  description="Personal brand photography and professional headshots for wellness businesses. Real photos of you and your practice, no stock, no guessing. Warkworth studio, on location across Auckland and New Zealand."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/services/brand-photography"
+>
+  <header class="sp-hero">
+    <div class="sp-hero__inner">
+      <p class="lm-eyebrow" data-anim>Brand Photography</p>
+      <h1 data-anim style="--anim-delay:.1s">Brand Photography &amp; Professional Headshots for Wellness Businesses</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">Real personal brand photography of you and your practice. No stock, no guessing. Trusted by coaches, practitioners, clinics, and studios across New Zealand, Australia, the US, UK, and Canada.</p>
+      <div class="sp-ctas" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={DISCOVERY}>Book a Discovery Call</a>
+        <a class="lm-btn lm-btn--outline" href={AUDIT}>Get Your Free Visibility Audit</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Stock photos get spotted. And it costs you trust.</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Everyone can spot a stock photo now. The lighting is too perfect. The smile is too wide. It is someone else's office, someone else's hands, someone else's life. The second a visitor notices, they stop trusting the rest of the page too.</p>
+        <p data-anim>A five-year-old headshot has the same problem, just quieter. It is not fake, but it is not you anymore either.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>What you get</h2>
+      <div class="sp-packages">
+        <div class="sp-package sp-package--feature" data-anim>
+          <p class="sp-package__name">Brand Authority</p>
+          <p class="sp-package__price">$1,500 +GST</p>
+          <p>Maximum variety across multiple locations. This becomes your full content library for the next 6 to 12 months.</p>
+        </div>
+        <div class="sp-package" data-anim style="--anim-delay:.1s">
+          <p class="sp-package__name">Startup</p>
+          <p class="sp-package__price">$899 +GST</p>
+          <p>Launch-ready photography for a new website or a big campaign. Multiple looks, multiple contexts, enough variety to populate a whole site.</p>
+        </div>
+        <div class="sp-package" data-anim style="--anim-delay:.2s">
+          <p class="sp-package__name">Brand Boost</p>
+          <p class="sp-package__price">$499 +GST</p>
+          <p>A quick, focused session for updated headshots and a handful of key brand images. Good for a fast refresh before a launch, a speaking engagement, or an updated LinkedIn.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Every image comes ready to post</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Not just a folder of files. Every photo, and every AI image, is sized and branded for exactly where you will use it, your website, your email newsletters, and your social media. Nothing sits unused on a hard drive.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--deep">
+    <div class="sp-wide">
+      <h2 class="sp-h2" data-anim>Never run out of content between shoots</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose" style="max-width:42rem">
+        <p data-anim>A photoshoot gives you weeks of fresh content. Then what? Our AI Content Studio trains AI on your own real photos, not stock, not generic prompts, to keep your website, newsletters, and social media stocked between shoots.</p>
+        <p data-anim><strong>One-off:</strong> $349 for 30 high-quality images, whenever you need a top-up.</p>
+        <p data-anim><strong>Ongoing:</strong> $300 for 30 images every month or every quarter, whichever suits your posting rhythm.</p>
+      </div>
+
+      <div class="sp-cards" style="margin-top:2.6rem">
+        <div class="sp-card" data-anim>
+          <h3>See if you can spot the difference</h3>
+          <p>An interactive test is coming here: two images side by side, one a real photo, one AI trained on that same client's shoot. You guess which is which, then reveal the answer. Both are real, in a way. The AI one just did not need a second photoshoot to exist.</p>
+        </div>
+        <div class="sp-card" data-anim style="--anim-delay:.1s">
+          <h3>Every image is approved, just like your photos</h3>
+          <p>Every AI image goes through the same private gallery approval you already know from your photoshoot. Nothing goes live until you say yes. If an image does not look right, it does not get used.</p>
+        </div>
+        <div class="sp-card" data-anim style="--anim-delay:.2s">
+          <h3>Skip the hair, makeup, and half day off</h3>
+          <p>A photoshoot means picking outfits, doing hair and makeup, and setting aside half a day to style your space and your smile. AI Content Studio skips all of that. You get new content without doing any of it.</p>
+        </div>
+      </div>
+
+      <div class="sp-prose" style="max-width:42rem;margin-top:2.2rem">
+        <p data-anim><strong>Will AI content look fake?</strong> Not when it is trained on your own photoshoot instead of random internet images, and every image is reviewed by hand before it reaches you. Research even backs this up, ads that blend real and AI-assisted content are remembered and trusted more than fully AI-generated ones.*</p>
+        <p data-anim><strong>Do you need to disclose AI-generated content?</strong> New Zealand has no AI disclosure law right now. Some places do, the EU from August 2026, New York for synthetic performers from June 2026, but content that is a variation of your own real photos, reviewed by a human, is treated differently from content that invents a person who does not exist. We track this closely and will flag anything that changes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Built for wellness practitioners</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>We know the difference between a headshot that looks professional and one that actually makes someone want to book a session with you. Coaches, practitioners, and clinic owners need photos that show warmth and credibility at the same time, not just a stiff corporate pose.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Photography across New Zealand</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Shoots happen at our natural light studio in Warkworth, or on location anywhere from Mangawhai to Auckland Central. If you have searched for a headshot photographer near you or business portraits nearby, this is exactly what we do.</p>
+      </div>
+    </div>
+  </section>
+
+  <ProcessSteps data={{ eyebrow: "The process", heading: "How it works", steps }} context={context} />
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>Proof</h2>
+      <div class="sp-proof">
+        {proof.map((p, i) => (
+          <div class="sp-proof__item" data-anim style={`--anim-delay:${0.1 * i}s`}>
+            <p class="sp-proof__lead">{p.lead}</p>
+            <p class="sp-proof__quote">{p.quote}</p>
+            <p class="sp-proof__name">{p.name}</p>
+            <p class="sp-proof__role">{p.role}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2 sp-center" data-anim>Frequently asked</h2>
+      <div class="sp-faq__list">
+        {faqs.map((f) => (
+          <details class="sp-faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+      <p class="sp-note" data-anim>* Nielsen study cited in "Real vs AI-Generated Ads: Can Your Audience Tell the Difference?", finding ads combining human and AI elements had higher brand recall than fully AI-generated creative.</p>
+    </div>
+  </section>
+
+  <CtaBanner
+    data={{
+      heading: "Ready for photos that actually look like you?",
+      body: "Book a friendly discovery call, or get your free visibility audit to see how your brand shows up first.",
+      buttons: [{ label: "Book a Discovery Call", href: DISCOVERY }, { label: "Get Your Free Visibility Audit", href: AUDIT }],
+    }}
+    context={context}
+  />
+</SiteLayout>

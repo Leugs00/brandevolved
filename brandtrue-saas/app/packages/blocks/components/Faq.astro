@@ -1,0 +1,44 @@
+---
+import sanitizeHtml from "sanitize-html";
+
+interface Props {
+  data: Record<string, any>;
+  context: unknown;
+}
+
+const { data } = Astro.props;
+const items: any[] = Array.isArray(data.items) ? data.items : [];
+---
+
+<section class="be-faq">
+  {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+  {items.map((item, i) => (
+    <details data-anim style={`--anim-delay:${0.08 * i}s`}>
+      <summary>{item.question}</summary>
+      <div set:html={sanitizeHtml(String(item.answer ?? ""))} />
+    </details>
+  ))}
+  {data.cta_label && (
+    <p class="be-faq__more">
+      <a href={data.cta_href || "#"}><span data-field="cta_label">{data.cta_label}</span> →</a>
+    </p>
+  )}
+</section>
+
+<style>
+  .be-faq { max-width: 46rem; margin: 0 auto; padding: clamp(3rem, 7vw, 5rem) 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-faq h2 {
+    font-family: var(--f-heading, Georgia, serif); color: var(--c-primary, #1f2937); font-weight: 600;
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); text-align: center; margin: 0 0 1.5rem;
+  }
+  details { border-bottom: 1px solid #e2ded6; padding: 1rem 0; }
+  summary { cursor: pointer; font-weight: 600; color: var(--c-text, #1f2937); font-size: 1.02rem; }
+  summary:hover { color: var(--c-primary, #008378); }
+  details div { padding-top: 0.6rem; color: #4b5563; line-height: 1.7; }
+  .be-faq__more { text-align: center; margin: 1.8rem 0 0; }
+  .be-faq__more a {
+    color: var(--c-primary, #008378); font-weight: 700; text-decoration: none;
+    letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.85rem;
+  }
+  .be-faq__more a:hover { color: var(--c-accent, #b79762); }
+</style>

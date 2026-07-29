@@ -1,0 +1,165 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import "../../styles/service.css";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const context = { siteId: site.id, supabaseUrl: env.url, anonKey: env.anonKey, collections: {}, forms: {}, projects: [], testimonials: [] };
+
+const DISCOVERY = "/contact";
+const AUDIT = "/visibility-audit";
+
+const included = [
+  { title: "Design & Build", body: "A site designed around your actual services and your actual clients, not a generic template with your logo dropped on top." },
+  { title: "Copywriting Support", body: "Help finding the words, so your site sounds like you and says what you actually need it to say." },
+  { title: "SEO Basics & Mobile Ready", body: "Built to show up in search and to look right on a phone, since that is where most people will find you first." },
+  { title: "Booking Integration", body: "A clear path from just looking to booked, so your website is doing sales work while you are doing client work." },
+];
+
+const steps = [
+  { title: "Discovery Call", body: "We map your story, your ideal client, and what your current site is getting wrong." },
+  { title: "Build", body: "Design, copy, and structure come together as one system, built alongside your brand photography and identity if you are using those services too." },
+  { title: "Launch & Grow", body: "Your new site goes live, with the SEO and booking basics in place from day one." },
+];
+
+const proof = [
+  { lead: "A true branding expert!", quote: "She completely transformed my business's online presence with her creative vision. From the fonts and logo to the overall website design, everything is stunning and unique. I've received countless compliments on my new website.", name: "Marina Savelyeva", role: "Dietitian" },
+  { lead: "Even better than we expected.", quote: "The website and the handouts were even better than we expected, just stunning! She put in so much work and went over and above what we imagined.", name: "Sarah Brenchley", role: "Naturopath & Herbalist, Hormone Empowerment" },
+  { lead: "I would highly recommend her.", quote: "I would highly recommend her to anyone who wants a streamlined approach to web design, branding and beautiful photography.", name: "Fiona Mckay", role: "Psychologist, Insight Psychology" },
+];
+
+const faqs = [
+  { q: "How much does website design cost in New Zealand?", a: "It depends on how much you need built, from a simple one-page site to a full multi-page website with booking and SEO built in. The clearest way to get an accurate number is a Discovery Call, where we look at your actual goals before quoting anything." },
+  { q: "Can I get help writing my website copy?", a: "Yes. Copywriting support is part of the service, so you are not stuck staring at a blank page trying to explain what you do." },
+  { q: "Do you build websites that follow the new therapeutic advertising code?", a: "Yes. New Zealand's health advertising rules changed in 2026, and they apply to websites, not just formal ads.* We build your copy and your claims with that in mind from the start, so you are not finding out about it later from a complaint." },
+  { q: "Can you safely migrate my old website without losing my search rankings?", a: "Yes, but it has to be done carefully. A migration should always include a full security check first. Moving a compromised or hacked site to a new domain can carry those problems with it and hurt your new site's search trust before it even launches. We check for this before touching anything." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title="Website Design & Development Auckland NZ for Wellness — Lola Media Design"
+  description="Website design and development for wellness coaches, therapists, nutritionists, practitioners and clinics. Built to be found and to convert. Auckland, Matakana and remote across New Zealand."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/services/website-design-and-development"
+>
+  <header class="sp-hero">
+    <div class="sp-hero__inner">
+      <p class="lm-eyebrow" data-anim>Website Design &amp; Development</p>
+      <h1 data-anim style="--anim-delay:.1s">Website Design for Wellness Coaches, Practitioners &amp; Clinics</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">Website design and development, built to be found, built to convert, and built for you. Serving clients across New Zealand (NZ), Australia, the US, UK, and Canada.</p>
+      <div class="sp-ctas" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={DISCOVERY}>Book a Discovery Call</a>
+        <a class="lm-btn lm-btn--outline" href={AUDIT}>Get Your Free Visibility Audit</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Your site is live. It's just not working.</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Maybe you built it yourself over a weekend. Maybe someone built it for you years ago and you have not touched it since. Either way, it is not doing its job. It does not say clearly what you do. It does not match the rest of your brand. And when someone lands on it, they do not feel the pull to book.</p>
+        <p data-anim>A website that just sits there is not really a website. It is a business card nobody reads.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>What's included</h2>
+      <div class="sp-cards">
+        {included.map((c, i) => (
+          <div class="sp-card" data-anim style={`--anim-delay:${0.08 * i}s`}>
+            <h3>{c.title}</h3>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--deep">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Your wellness website is your home base</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Social media is rented land. You post there, but you do not own the audience, the algorithm decides who sees you, and the platform can change the rules any time it wants.</p>
+        <p data-anim>Your website is different. You own it. Your email list is the same. Every person on it chose to hear from you directly, no algorithm in between.</p>
+        <p data-anim>That is why we build your health website as the centre of everything, not just one more channel. Your social posts should point people back to it. Your email newsletters should pull from it. It is the one place online that is actually yours.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Website design and development across New Zealand</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>We work with clients from Mangawhai to Auckland Central, and everywhere in between, including our home base in Matakana. Because we work remotely, we also design and build for wellness businesses right across the country, from Christchurch to Wellington and beyond. If you have searched for website design in Auckland, a web developer nearby, or website design in NZ, this is exactly what we do: real design, real strategy, and a site that is actually built for your business instead of picked from a template library.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Built for the wellness niche</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>We work specifically with wellness coaches, health practitioners, therapists, nutritionists, naturopaths, psychologists, clinics, and studios, in New Zealand and increasingly across the US. That means we already understand the things a generic web designer has to learn from scratch: how to build trust before the first booking, how to describe transformation honestly, and how to stay on the right side of advertising rules for health and wellness claims. Your wellness website is built around that from the start.</p>
+      </div>
+    </div>
+  </section>
+
+  <ProcessSteps data={{ eyebrow: "The process", heading: "How it works", steps }} context={context} />
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>Proof</h2>
+      <div class="sp-proof">
+        {proof.map((p, i) => (
+          <div class="sp-proof__item" data-anim style={`--anim-delay:${0.1 * i}s`}>
+            <p class="sp-proof__lead">{p.lead}</p>
+            <p class="sp-proof__quote">{p.quote}</p>
+            <p class="sp-proof__name">{p.name}</p>
+            <p class="sp-proof__role">{p.role}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2 sp-center" data-anim>Frequently asked</h2>
+      <div class="sp-faq__list">
+        {faqs.map((f) => (
+          <details class="sp-faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+      <p class="sp-note" data-anim>* Advertising Standards Authority (NZ), Therapeutic and Health Advertising Code, effective 2026. <a href="https://asa.co.nz/codes/codes/therapeutic-and-health-advertising-code-new/" target="_blank" rel="noopener noreferrer">asa.co.nz</a></p>
+    </div>
+  </section>
+
+  <CtaBanner
+    data={{
+      heading: "Ready for a website that actually works?",
+      body: "Book a friendly discovery call, or get your free visibility audit to see how your site shows up first.",
+      buttons: [{ label: "Book a Discovery Call", href: DISCOVERY }, { label: "Get Your Free Visibility Audit", href: AUDIT }],
+    }}
+    context={context}
+  />
+</SiteLayout>

@@ -1,0 +1,78 @@
+---
+import type { RenderBlock, RenderContext } from "../src/index.ts";
+import Hero from "./Hero.astro";
+import RichText from "./RichText.astro";
+import ImageBlock from "./ImageBlock.astro";
+import Gallery from "./Gallery.astro";
+import Features from "./Features.astro";
+import Cta from "./Cta.astro";
+import CollectionList from "./CollectionList.astro";
+import FormEmbed from "./FormEmbed.astro";
+import Faq from "./Faq.astro";
+import TestimonialStrip from "./TestimonialStrip.astro";
+import ProjectList from "./ProjectList.astro";
+import SplitHero from "./SplitHero.astro";
+import IntroSplit from "./IntroSplit.astro";
+import IconColumns from "./IconColumns.astro";
+import ProcessSteps from "./ProcessSteps.astro";
+import TestimonialCarousel from "./TestimonialCarousel.astro";
+import ServiceCards from "./ServiceCards.astro";
+import CtaBanner from "./CtaBanner.astro";
+import DeviceCarousel from "./DeviceCarousel.astro";
+import ProseSection from "./ProseSection.astro";
+import LogoStrip from "./LogoStrip.astro";
+import TestimonialShowcase from "./TestimonialShowcase.astro";
+
+interface Props {
+  block: RenderBlock;
+  context: RenderContext;
+}
+
+const { block, context } = Astro.props;
+
+const components: Record<string, any> = {
+  hero: Hero,
+  text: RichText,
+  image: ImageBlock,
+  gallery: Gallery,
+  features: Features,
+  cta: Cta,
+  collection_list: CollectionList,
+  form_embed: FormEmbed,
+  faq: Faq,
+  testimonial_strip: TestimonialStrip,
+  project_list: ProjectList,
+  split_hero: SplitHero,
+  intro_split: IntroSplit,
+  icon_columns: IconColumns,
+  process_steps: ProcessSteps,
+  testimonial_carousel: TestimonialCarousel,
+  service_cards: ServiceCards,
+  cta_banner: CtaBanner,
+  device_carousel: DeviceCarousel,
+  prose_section: ProseSection,
+  logo_strip: LogoStrip,
+  testimonial_showcase: TestimonialShowcase,
+};
+
+const Component = components[block.kind];
+---
+
+{
+  Component ? (
+    <div
+      class="be-block"
+      data-block-id={context.editable ? block.id : undefined}
+      data-block-kind={context.editable ? block.kind : undefined}
+      data-block-locked={context.editable ? String(block.locked) : undefined}
+    >
+      <Component data={block.data} context={context} />
+    </div>
+  ) : context.editable ? (
+    <div class="be-block" data-block-id={block.id} data-block-kind={block.kind}>
+      <p style="padding:1rem;background:#fef2f2;color:#991b1b;">
+        Unknown block kind: {block.kind}
+      </p>
+    </div>
+  ) : null
+}

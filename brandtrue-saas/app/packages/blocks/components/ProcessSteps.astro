@@ -1,0 +1,62 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const steps: Record<string, any>[] = Array.isArray(data.steps) ? data.steps : [];
+---
+
+<section class="lm-steps">
+  <div class="lm-steps__inner">
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    <h2 data-field="heading" data-anim>{data.heading}</h2>
+    {data.intro && <p class="lm-steps__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+    <ol class="lm-steps__list" data-anim>
+      {steps.map((step, i) => (
+        <li class="lm-steps__step" data-anim style={`--anim-delay:${0.18 * i}s`}>
+          <span class="lm-steps__num" aria-hidden="true">{i + 1}</span>
+          <h3>{step.title}</h3>
+          <p>{step.body}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .lm-steps { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-cream); }
+  .lm-steps__inner { max-width: 72rem; margin: 0 auto; text-align: center; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); line-height: 1.2; margin: 0 auto 1rem; max-width: 42rem;
+  }
+  .lm-steps__intro { max-width: 44rem; margin: 0 auto; line-height: 1.75; }
+  .lm-steps__list {
+    list-style: none; margin: 3rem 0 0; padding: 0; position: relative;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 2rem;
+    counter-reset: step;
+  }
+  /* the connecting line draws itself across the steps on scroll */
+  .lm-steps__list::before {
+    content: ""; position: absolute; top: 1.55rem; left: 8%; height: 2px; width: 0;
+    background: var(--c-accent); transition: width 1.4s ease 0.3s;
+  }
+  :global(html.js) .lm-steps__list.in::before, :global(html:not(.js)) .lm-steps__list::before { width: 84%; }
+  @media (prefers-reduced-motion: reduce) { .lm-steps__list::before { width: 84%; transition: none; } }
+  .lm-steps__step { position: relative; padding: 0 0.6rem; }
+  .lm-steps__num {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center;
+    width: 3.1rem; height: 3.1rem; border-radius: 999px; background: var(--c-primary); color: #fff;
+    font-family: var(--f-heading); font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem;
+    box-shadow: 0 0 0 6px var(--c-cream);
+  }
+  h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.3rem; margin: 0 0 0.6rem; }
+  .lm-steps__step p { line-height: 1.65; font-size: 0.93rem; margin: 0; }
+  @media (max-width: 46rem) {
+    .lm-steps__list::before { display: none; }
+  }
+</style>

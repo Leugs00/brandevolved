@@ -1,0 +1,43 @@
+/*
+ * BRAND TOKENS — the single place to re-skin the whole admin.
+ * Current skin: Lola Media (from Lola_Media_Design_System.html).
+ * To swap to BrandEvolved later: replace the values below (and
+ * PUBLIC_BRAND_NAME in .env) — nothing else in the app references
+ * raw colors or font names.
+ */
+:root {
+  /* core palette */
+  --brand-primary: #008378;          /* lm-green — buttons, links, active */
+  --brand-primary-dark: #006b62;     /* lm-green-dark — hover */
+  --brand-primary-deepest: #00554e;  /* lm-green-deepest — sidebar, headers */
+  --brand-accent: #b79762;           /* lm-gold — logo mark, highlights */
+  --brand-accent-dark: #9c7f4f;
+  --brand-secondary: #74c9b2;        /* lm-turquoise */
+  --brand-mint: #b6e9e0;
+  --brand-mint-pale: #c4ede1;
+  --brand-lilac: #d9c2dd;
+
+  /* surfaces & ink */
+  --brand-paper: #fbfcfc;            /* app background */
+  --brand-cloud: #eef1f1;            /* recessed panels */
+  --brand-white: #ffffff;
+  --brand-ink: #201e1f;
+  --brand-ink-soft: #4a4749;
+  --brand-ink-mute: #837f81;
+  --brand-line: #d5d7d9;             /* borders */
+
+  /* charts (validated ≥3:1 on paper + chroma floor; near brand-primary) */
+  --brand-chart: #009285;
+  --brand-chart-hover: #006b62;
+
+  /* type */
+  --brand-font-heading: "Cormorant", Georgia, "Times New Roman", serif;
+  --brand-font-body: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* shape */
+  --brand-radius-sm: 8px;
+  --brand-radius: 14px;
+  --brand-radius-lg: 24px;
+  --brand-shadow-sm: 0 2px 8px rgba(23, 119, 93, 0.06);
+  --brand-shadow-md: 0 8px 24px rgba(23, 119, 93, 0.08);
+}

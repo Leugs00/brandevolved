@@ -1,0 +1,138 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const limit = Number(data.limit) > 0 ? Number(data.limit) : 12;
+const featuredOnly = data.featured_only === "yes";
+const all = context.testimonials ?? [];
+const items = (featuredOnly ? all.filter((t) => t.featured) : all).slice(0, limit);
+const quoteIcon = data.quote_icon ?? {};
+---
+
+<section class="lm-quotes">
+  <div class="lm-quotes__head">
+    {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+    {data.intro && <p class="lm-quotes__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+  </div>
+  {items.length === 0 && context.editable && (
+    <p class="lm-quotes__warn">No published testimonials yet — add them in the Testimonials section (they need a public client and confirmed permission).</p>
+  )}
+  {items.length > 0 && (
+    <div class="lm-quotes__shell" data-anim style="--anim-delay:.2s">
+      <button class="lm-quotes__nav lm-quotes__nav--prev" type="button" aria-label="Previous testimonials">‹</button>
+      <div class="lm-quotes__track" tabindex="0">
+        {items.map((t) => (
+          <article class="lm-quotes__card">
+            {quoteIcon.src ? (
+              <img class="lm-quotes__mark" src={quoteIcon.src} alt="" aria-hidden="true" loading="lazy" />
+            ) : (
+              <span class="lm-quotes__mark lm-quotes__mark--text" aria-hidden="true">“</span>
+            )}
+            {t.rating != null && Number(t.rating) > 0 && (
+              <p class="lm-quotes__stars" aria-label={`${t.rating} out of 5 stars`}>
+                {"★".repeat(Math.round(Number(t.rating)))}
+              </p>
+            )}
+            {t.short_quote && <h3>{t.short_quote}</h3>}
+            <p class="lm-quotes__quote">{t.quote}</p>
+            <footer>
+              <strong>{t.display_name}</strong>
+              {(t.display_role || t.display_business) && (
+                <span>{[t.display_role, t.display_business].filter(Boolean).join(", ")}</span>
+              )}
+              {t.client_location && <span class="lm-quotes__loc">{t.client_location}</span>}
+            </footer>
+          </article>
+        ))}
+      </div>
+      <button class="lm-quotes__nav lm-quotes__nav--next" type="button" aria-label="More testimonials">›</button>
+    </div>
+  )}
+  {data.cta_label && (
+    <p class="lm-quotes__more">
+      <a href={data.cta_href || "/testimonials"}><span data-field="cta_label">{data.cta_label}</span> →</a>
+    </p>
+  )}
+</section>
+
+<script>
+  document.querySelectorAll(".lm-quotes__shell").forEach((shell) => {
+    const track = shell.querySelector(".lm-quotes__track") as HTMLElement | null;
+    if (!track) return;
+    const step = () => {
+      const card = track.querySelector(".lm-quotes__card") as HTMLElement | null;
+      return card ? card.offsetWidth + 24 : 320;
+    };
+    shell.querySelector(".lm-quotes__nav--prev")?.addEventListener("click", () => {
+      track.scrollBy({ left: -step(), behavior: "smooth" });
+    });
+    shell.querySelector(".lm-quotes__nav--next")?.addEventListener("click", () => {
+      track.scrollBy({ left: step(), behavior: "smooth" });
+    });
+  });
+</script>
+
+<style>
+  .lm-quotes { padding: clamp(3rem, 7vw, 5.5rem) 0; background: var(--c-bg); }
+  .lm-quotes__head { text-align: center; padding: 0 1.5rem; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); margin: 0 0 0.8rem;
+  }
+  .lm-quotes__intro { max-width: 42rem; margin: 0 auto; line-height: 1.7; }
+  .lm-quotes__warn { max-width: 40rem; margin: 1.5rem auto 0; background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .lm-quotes__shell { position: relative; margin-top: 2.5rem; padding: 0 clamp(1rem, 4vw, 3.5rem); }
+  .lm-quotes__track {
+    display: flex; gap: 1.5rem; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding: 0.5rem 0.25rem 1.25rem; scrollbar-width: thin;
+  }
+  .lm-quotes__card {
+    position: relative; overflow: hidden;
+    flex: 0 0 clamp(17rem, 28vw, 22rem); scroll-snap-align: start;
+    background: var(--c-cream); border-radius: 1rem; padding: 1.8rem;
+    display: flex; flex-direction: column;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .lm-quotes__card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1); }
+  /* large, faded quote mark as a background motif on the upper-left of the card */
+  /* gold quote mark motif, left-aligned behind the headline (first sentence) */
+  .lm-quotes__mark {
+    position: absolute; top: 2.6rem; left: -0.3rem; z-index: 0;
+    height: 7rem; width: auto; opacity: 0.2; pointer-events: none;
+  }
+  .lm-quotes__mark--text { font-family: var(--f-heading); color: var(--c-accent); font-size: 7rem; line-height: 0.8; height: auto; opacity: 0.28; }
+  .lm-quotes__card > *:not(.lm-quotes__mark) { position: relative; z-index: 1; }
+  .lm-quotes__stars { color: var(--c-accent); letter-spacing: 0.2em; margin: 0 0 0.6rem; }
+  h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.2rem; line-height: 1.3; margin: 0 0 0.7rem; }
+  .lm-quotes__quote {
+    line-height: 1.65; font-size: 0.92rem; margin: 0 0 1.1rem;
+    display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .lm-quotes__card:hover .lm-quotes__quote { -webkit-line-clamp: unset; }
+  footer { margin-top: auto; display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.85rem; color: #5b6b68; }
+  footer strong {
+    font-family: var(--f-script); font-weight: 100 !important; -webkit-font-smoothing: antialiased;
+    color: var(--c-accent); font-size: 2.5rem; line-height: 1.05; text-transform: capitalize;
+    margin-bottom: 0.15rem;
+  }
+  .lm-quotes__loc { font-size: 0.78rem; }
+  .lm-quotes__nav {
+    position: absolute; top: 40%; z-index: 2; width: 2.6rem; height: 2.6rem; border-radius: 999px;
+    border: none; background: var(--c-primary); color: #fff; font-size: 1.5rem; line-height: 1;
+    cursor: pointer; transition: background 0.2s ease; display: grid; place-items: center;
+  }
+  .lm-quotes__nav:hover { background: var(--c-accent); }
+  .lm-quotes__nav--prev { left: 0.4rem; }
+  .lm-quotes__nav--next { right: 0.4rem; }
+  .lm-quotes__more { text-align: center; margin: 1.5rem 1.5rem 0; }
+  .lm-quotes__more a {
+    color: var(--c-primary); font-weight: 700; text-decoration: none;
+    letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.85rem;
+  }
+  .lm-quotes__more a:hover { color: var(--c-accent); }
+</style>

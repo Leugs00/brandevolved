@@ -1,0 +1,161 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import ProcessSteps from "@brandevolved/blocks/components/ProcessSteps.astro";
+import CtaBanner from "@brandevolved/blocks/components/CtaBanner.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import "../../styles/service.css";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const context = { siteId: site.id, supabaseUrl: env.url, anonKey: env.anonKey, collections: {}, forms: {}, projects: [], testimonials: [] };
+
+const DISCOVERY = "/contact";
+const AUDIT = "/visibility-audit";
+
+const included = [
+  { title: "Logo & Identity System", body: "A logo built around your actual practice, with the colours, fonts, and visual style to back it up everywhere you show up." },
+  { title: "Brand Guide", body: "A simple reference document so your brand stays consistent, even when you are the one making a new flyer at 9pm." },
+  { title: "Templates", body: "Ready-to-use templates for social posts, print materials, and email, so you are not starting from scratch every time you need something new." },
+];
+
+const steps = [
+  { title: "Discovery Call", body: "We map your story, your ideal client, and where your current brand is losing trust." },
+  { title: "Build", body: "Your logo, identity system, and templates come together as one system, alongside your photography and website if you are using those services too." },
+  { title: "Launch & Grow", body: "You get a brand guide and template library that makes every future post, flyer, or handout easier." },
+];
+
+const proof = [
+  { lead: "A true branding expert!", quote: "Lori at Lola Media completely transformed my business's online presence with her creative vision. From the fonts and logo to the overall website design, everything is stunning and unique.", name: "Marina Savelyeva", role: "Dietitian" },
+  { lead: "She got our branding spot on.", quote: "She really listened to us and got our branding spot on. She put in so much work and went over and above what we imagined.", name: "Sarah Brenchley", role: "Naturopath & Herbalist, Hormone Empowerment" },
+];
+
+const faqs = [
+  { q: "How much does logo design cost in New Zealand?", a: "It depends on whether you need just a logo or a full identity system with templates. A Discovery Call is the fastest way to get an accurate number for what you actually need." },
+  { q: "Do I need a full brand identity or just a logo?", a: "If you are just starting out, a logo might be enough for now. If you are already posting content, sending emails, or handing out materials, a full identity system saves you from redoing the same decisions over and over." },
+  { q: "Can you make sure my brand messaging follows the new health advertising code?", a: "Yes. We build your brand guide with New Zealand's updated Therapeutic and Health Advertising Code in mind, so your language stays safe and compliant from the start." },
+];
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title="Logo & Brand Design for Wellness Businesses NZ — Lola Media Design"
+  description="Logo design, brand identity and graphic design for wellness businesses across New Zealand. Real brand strategy behind every logo, not just a nice-looking mark. Based in Matakana, serving Auckland and beyond."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/services/brand-and-design"
+>
+  <header class="sp-hero">
+    <div class="sp-hero__inner">
+      <p class="lm-eyebrow" data-anim>Brand &amp; Design</p>
+      <h1 data-anim style="--anim-delay:.1s">Logo &amp; Brand Design for Wellness Businesses</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">A logo, colours, and templates that finally match, and stay that way. Thoughtful graphic design and brand identity, serving clients across New Zealand, Australia, the US, UK, and Canada.</p>
+      <div class="sp-ctas" data-anim style="--anim-delay:.25s">
+        <a class="lm-btn" href={DISCOVERY}>Book a Discovery Call</a>
+        <a class="lm-btn lm-btn--outline" href={AUDIT}>Get Your Free Visibility Audit</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Your brand happened by accident</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>A logo from a template site. Colours that seemed fine at the time. A font a friend picked out. None of it was wrong exactly, it just was not planned, and now nothing quite matches.</p>
+        <p data-anim>Your practice has grown and changed since then. Your brand has not caught up. That gap is exactly what makes a business feel less established than it actually is.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>What's included</h2>
+      <div class="sp-cards">
+        {included.map((c, i) => (
+          <div class="sp-card" data-anim style={`--anim-delay:${0.1 * i}s`}>
+            <h3>{c.title}</h3>
+            <p>{c.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Want to go deeper first? Try a Brand Resonance session</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Before we design anything, some clients want to go deeper first. A Brand Resonance session is a paid, in-depth exploration of your brand story, before a single logo concept gets drawn. It is for anyone who wants real clarity before committing to the full identity build.</p>
+        <p class="sp-note" data-anim>Brand Resonance is a paid add-on, separate from the free Discovery Call.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Built for wellness brands</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Your brand guide is not just fonts and colours. It includes language guardrails too, so you know what you can and cannot claim under New Zealand's updated health advertising rules.* That is built in from day one, not something you find out about after a complaint. It is the kind of detail a generic graphic designer rarely thinks about, but a practitioner-focused studio does.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Brand design across New Zealand</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>We work with wellness businesses from Mangawhai to Auckland Central, based right in Matakana, and remotely with practitioners across the country. If you have searched for logo design or a graphic designer in New Zealand, this is exactly what we do, real brand strategy behind every logo, not just a nice-looking mark.</p>
+      </div>
+    </div>
+  </section>
+
+  <ProcessSteps data={{ eyebrow: "The process", heading: "How it works", steps }} context={context} />
+
+  <section class="sp-section sp-section--cream">
+    <div class="sp-wide sp-center">
+      <h2 class="sp-h2" data-anim>Proof</h2>
+      <div class="sp-proof">
+        {proof.map((p, i) => (
+          <div class="sp-proof__item" data-anim style={`--anim-delay:${0.1 * i}s`}>
+            <p class="sp-proof__lead">{p.lead}</p>
+            <p class="sp-proof__quote">{p.quote}</p>
+            <p class="sp-proof__name">{p.name}</p>
+            <p class="sp-proof__role">{p.role}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2 sp-center" data-anim>Frequently asked</h2>
+      <div class="sp-faq__list">
+        {faqs.map((f) => (
+          <details class="sp-faq__item">
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+      <p class="sp-note" data-anim>* Advertising Standards Authority (NZ), Therapeutic and Health Advertising Code, effective 2026. <a href="https://asa.co.nz/codes/codes/therapeutic-and-health-advertising-code-new/" target="_blank" rel="noopener noreferrer">asa.co.nz</a></p>
+    </div>
+  </section>
+
+  <CtaBanner
+    data={{
+      heading: "Ready for a brand that finally matches?",
+      body: "Book a friendly discovery call, or get your free visibility audit to see how your brand shows up first.",
+      buttons: [{ label: "Book a Discovery Call", href: DISCOVERY }, { label: "Get Your Free Visibility Audit", href: AUDIT }],
+    }}
+    context={context}
+  />
+</SiteLayout>

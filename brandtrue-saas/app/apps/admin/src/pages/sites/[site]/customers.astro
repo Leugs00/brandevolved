@@ -1,0 +1,88 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../lib/site.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+  if (action === "add") {
+    const { error: e } = await db.from("customers").insert({
+      organization_id: site.organization_id,
+      site_id: site.id,
+      name: String(form.get("name") ?? "").trim(),
+      email: String(form.get("email") ?? "").trim() || null,
+      phone: String(form.get("phone") ?? "").trim() || null,
+      company: String(form.get("company") ?? "").trim() || null,
+      notes: String(form.get("notes") ?? "").trim() || null,
+    });
+    error = e?.message ?? null;
+  } else if (action === "delete") {
+    await db.from("customers").delete().eq("id", String(form.get("id") ?? ""));
+  }
+  if (!error) return Astro.redirect(`/sites/${site.id}/customers`);
+}
+
+const { data: customers } = await db
+  .from("customers")
+  .select("id, name, email, phone, company, notes, created_at")
+  .eq("site_id", site.id)
+  .order("name");
+---
+
+<AdminLayout title={`Customers · ${site.name}`} site={site} active="customers">
+  <div class="p-8 max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight mb-1">Customers</h1>
+    <p class="text-sm text-slate-500 mb-6">People and businesses you work with.</p>
+
+    <form method="post" class="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 rounded-xl border border-slate-200 bg-white p-4">
+      <input type="hidden" name="action" value="add" />
+      <input name="name" required placeholder="Name *" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
+      <input name="email" type="email" placeholder="Email" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
+      <input name="phone" placeholder="Phone" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
+      <input name="company" placeholder="Company" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm" />
+      <input name="notes" placeholder="Notes" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm sm:col-span-2 lg:col-span-1" />
+      <button class="rounded-lg bg-brand-700 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-800">Add customer</button>
+      {error && <p class="text-sm text-red-600 sm:col-span-2 lg:col-span-3">{error}</p>}
+    </form>
+
+    <div class="rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-100">
+            <th class="px-4 py-2.5 font-medium">Name</th>
+            <th class="px-4 py-2.5 font-medium">Company</th>
+            <th class="px-4 py-2.5 font-medium">Email</th>
+            <th class="px-4 py-2.5 font-medium">Phone</th>
+            <th class="px-4 py-2.5 font-medium">Notes</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {(customers ?? []).map((c) => (
+            <tr class="border-b border-slate-50">
+              <td class="px-4 py-2.5 font-medium">{c.name}</td>
+              <td class="px-4 py-2.5">{c.company}</td>
+              <td class="px-4 py-2.5">{c.email}</td>
+              <td class="px-4 py-2.5">{c.phone}</td>
+              <td class="px-4 py-2.5 text-slate-500 max-w-[16rem] truncate">{c.notes}</td>
+              <td class="px-4 py-2.5 text-right">
+                <form method="post" onsubmit="return confirm('Delete this customer?')">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={c.id} />
+                  <button class="text-xs text-red-500 hover:underline">Delete</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(!customers || customers.length === 0) && <p class="px-4 py-6 text-slate-500 text-sm">No customers yet.</p>}
+    </div>
+  </div>
+</AdminLayout>

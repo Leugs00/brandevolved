@@ -1,0 +1,35 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import ProjectList from "@brandevolved/blocks/components/ProjectList.astro";
+import { createAnonClient, readEnv } from "@brandevolved/shared/supabase";
+import { fetchProjects } from "../../lib/fetch.ts";
+
+const env = readEnv(import.meta.env as Record<string, string | undefined>);
+const siteId = import.meta.env.SITE_ID || process.env.SITE_ID;
+const db = createAnonClient(env);
+const { data: site } = await db.from("sites").select("id, name, slug, settings").eq("id", siteId).single();
+if (!site) return new Response("Not found", { status: 404 });
+const projects = await fetchProjects(db, siteId!);
+
+const context = {
+  siteId: site.id,
+  supabaseUrl: env.url,
+  anonKey: env.anonKey,
+  collections: {},
+  forms: {},
+  projects,
+};
+---
+
+<SiteLayout
+  siteName={site.name}
+  siteId={site.id}
+  title={`Our work — ${site.name}`}
+  description="A selection of recent projects."
+  settings={(site.settings as any) ?? {}}
+  supabaseUrl={env.url}
+  anonKey={env.anonKey}
+  currentPath="/work"
+>
+  <ProjectList data={{ heading: "Our work", layout: "grid", limit: 60, featured_only: "no" }} context={context} />
+</SiteLayout>

@@ -1,0 +1,65 @@
+---
+import { filterProjects, type RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const all = context.projects ?? [];
+const filtered = filterProjects(all, {
+  service: String(data.filter_service ?? "").trim() || undefined,
+  industry: String(data.filter_industry ?? "").trim() || undefined,
+  type: String(data.filter_type ?? "").trim() || undefined,
+  featured: data.featured_only === "yes",
+  portfolioOnly: true,
+});
+const limit = Number(data.limit) > 0 ? Number(data.limit) : 12;
+const projects = filtered.slice(0, limit);
+// nothing published yet → render nothing on the live site (editors still see the hint)
+const hidden = projects.length === 0 && !context.editable;
+---
+
+{!hidden && <section class="be-projects">
+  {data.heading && <h2 data-field="heading" data-anim>{data.heading}</h2>}
+  {data.intro && <p class="be-projects__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+  {projects.length === 0 && context.editable && (
+    <p class="be-projects__warn">No published projects match yet — add or publish projects in the Projects section.</p>
+  )}
+  <div class:list={["be-projects__items", `be-projects__items--${data.layout === "list" ? "list" : "grid"}`]}>
+    {projects.map((p) => (
+      <article class="be-projects__card">
+        {p.hero_image_url && <img src={p.hero_image_url} alt={p.title} loading="lazy" />}
+        <div class="be-projects__body">
+          {p.project_type_name && <span class="be-projects__tag">{p.project_type_name}</span>}
+          <h3>{p.case_study_enabled ? <a href={`/work/${p.slug}`}>{p.title}</a> : p.title}</h3>
+          {p.business_name && <p class="be-projects__client">{p.business_name}</p>}
+          {p.project_summary && <p class="be-projects__summary">{p.project_summary}</p>}
+          {p.case_study_enabled && <a class="be-projects__more" href={`/work/${p.slug}`}>View case study →</a>}
+        </div>
+      </article>
+    ))}
+  </div>
+</section>}
+
+<style>
+  .be-projects { max-width: 68rem; margin: 0 auto; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-projects h2 {
+    font-family: var(--f-heading, Georgia, serif); color: var(--c-primary, #201e1f); font-weight: 600;
+    font-size: clamp(1.8rem, 3.4vw, 2.5rem); text-align: center; margin: 0 0 1rem;
+  }
+  .be-projects__intro { max-width: 44rem; margin: 0 auto 2rem; text-align: center; line-height: 1.7; color: var(--c-text, #201e1f); }
+  .be-projects__warn { background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .be-projects__items--grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 1.5rem; }
+  .be-projects__items--list { display: flex; flex-direction: column; gap: 1.25rem; }
+  .be-projects__card { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; overflow: hidden; }
+  .be-projects__card img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; }
+  .be-projects__body { padding: 1.1rem 1.25rem 1.25rem; }
+  .be-projects__tag { display: inline-block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-primary, #008378); }
+  .be-projects__body h3 { margin: 0.35rem 0 0.2rem; color: var(--c-text, #201e1f); }
+  .be-projects__body h3 a { color: inherit; text-decoration: none; }
+  .be-projects__client { margin: 0 0 0.5rem; color: #6b7280; font-size: 0.9rem; }
+  .be-projects__summary { margin: 0 0 0.75rem; color: #4b5563; line-height: 1.55; font-size: 0.95rem; }
+  .be-projects__more { color: var(--c-primary, #008378); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+</style>

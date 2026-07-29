@@ -1,0 +1,81 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const canEdit = canEditStructure(membership?.role);
+let error: string | null = null;
+
+if (Astro.request.method === "POST" && canEdit) {
+  const form = await Astro.request.formData();
+  const name = String(form.get("name") ?? "").trim();
+  const slug = String(form.get("slug") ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  if (name && slug) {
+    const { data: created, error: e } = await db
+      .from("forms")
+      .insert({
+        organization_id: site.organization_id,
+        site_id: site.id,
+        name,
+        slug,
+        fields: [
+          { name: "name", label: "Your name", type: "text", required: true },
+          { name: "email", label: "Email", type: "email", required: true },
+          { name: "message", label: "Message", type: "textarea", required: false },
+        ] as never,
+      })
+      .select("id")
+      .single();
+    if (e) error = e.message;
+    else return Astro.redirect(`/sites/${site.id}/forms/${created.id}`);
+  }
+}
+
+const { data: forms } = await db
+  .from("forms")
+  .select("id, name, slug, creates_lead, creates_contact, form_submissions(count)")
+  .eq("site_id", site.id)
+  .order("name");
+---
+
+<AdminLayout title={`Forms · ${site.name}`} site={site} active="forms">
+  <div class="p-8 max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight mb-1">Forms</h1>
+    <p class="text-sm text-slate-500 mb-6">Embed a form on any page with a “Form” block using its slug.</p>
+
+    {canEdit && (
+      <form method="post" class="mb-6 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4">
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Name</span>
+          <input name="name" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-56" placeholder="Booking enquiry" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Slug</span>
+          <input name="slug" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-40" placeholder="booking" />
+        </label>
+        <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">New form</button>
+        {error && <p class="text-sm text-red-600 w-full">{error}</p>}
+      </form>
+    )}
+
+    <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      {(forms ?? []).map((f) => (
+        <a href={`/sites/${site.id}/forms/${f.id}`} class="flex items-center justify-between gap-4 px-5 py-3 hover:bg-slate-50">
+          <div>
+            <p class="font-medium">{f.name}</p>
+            <p class="text-sm text-slate-500">slug: {f.slug}
+              {f.creates_lead && <span class="ml-2 rounded-full bg-sky-100 text-sky-700 px-2 py-0.5 text-xs">creates lead</span>}
+              {f.creates_contact && <span class="ml-2 rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-xs">creates contact</span>}
+            </p>
+          </div>
+          <span class="text-sm text-slate-400">{(f.form_submissions as unknown as { count: number }[])[0]?.count ?? 0} submissions</span>
+        </a>
+      ))}
+      {(!forms || forms.length === 0) && <p class="px-5 py-6 text-slate-500 text-sm">No forms yet.</p>}
+    </div>
+  </div>
+</AdminLayout>

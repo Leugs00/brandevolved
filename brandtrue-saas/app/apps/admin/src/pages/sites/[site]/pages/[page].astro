@@ -1,0 +1,113 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { isAgency, canEditStructure } from "../../../../lib/nav.ts";
+import { blockDefs } from "@brandevolved/shared/blocks";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const { data: page } = await db
+  .from("pages")
+  .select("id, path, title, meta_description, status")
+  .eq("id", Astro.params.page!)
+  .eq("site_id", site.id)
+  .maybeSingle();
+if (!page) return Astro.redirect(`/sites/${site.id}/pages`);
+
+const { data: blocks } = await db
+  .from("content_blocks")
+  .select("id, kind, data, locked, position")
+  .eq("page_id", page.id)
+  .order("position");
+
+const role = membership?.role;
+const boot = {
+  siteId: site.id,
+  page,
+  blocks: blocks ?? [],
+  defs: Object.fromEntries(
+    Object.entries(blockDefs).map(([kind, def]) => [
+      kind,
+      { label: def.label, description: def.description, fields: def.fields },
+    ]),
+  ),
+  can: {
+    structure: canEditStructure(role),
+    lock: isAgency(role),
+    meta: canEditStructure(role),
+    editLocked: isAgency(role),
+  },
+  previewUrl: `/sites/${site.id}/preview/${page.id}?edit=1`,
+};
+---
+
+<AdminLayout title={`Edit · ${page.title}`} site={site} active="pages">
+  <div class="h-screen flex flex-col">
+    <header class="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
+      <a href={`/sites/${site.id}/pages`} class="text-sm text-slate-500 hover:text-slate-800">← Pages</a>
+      <h1 class="font-semibold truncate">{page.title}</h1>
+      <span class="text-sm text-slate-400 truncate">{page.path}</span>
+      <span id="save-state" class="ml-auto text-xs text-slate-400"></span>
+      {boot.can.meta && (
+        <button id="meta-toggle" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Page settings</button>
+      )}
+    </header>
+
+    {boot.can.meta && (
+      <div id="meta-panel" class="hidden border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <div class="flex flex-wrap items-end gap-3 text-sm">
+          <label class="block">
+            <span class="block text-xs text-slate-500 mb-1">Title</span>
+            <input id="meta-title" class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-64" value={page.title} />
+          </label>
+          <label class="block">
+            <span class="block text-xs text-slate-500 mb-1">Path</span>
+            <input id="meta-path" class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-48" value={page.path} />
+          </label>
+          <label class="block grow max-w-md">
+            <span class="block text-xs text-slate-500 mb-1">Meta description</span>
+            <input id="meta-desc" class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-full" value={page.meta_description ?? ""} />
+          </label>
+          <label class="block">
+            <span class="block text-xs text-slate-500 mb-1">Status</span>
+            <select id="meta-status" class="rounded-lg border border-slate-300 px-2.5 py-1.5">
+              <option value="draft" selected={page.status === "draft"}>Draft</option>
+              <option value="published" selected={page.status === "published"}>Published</option>
+            </select>
+          </label>
+          <button id="meta-save" class="rounded-lg bg-brand-700 px-4 py-1.5 font-semibold text-white hover:bg-brand-800">Save</button>
+          <button id="page-delete" class="rounded-lg border border-red-300 px-3 py-1.5 text-red-600 hover:bg-red-50">Delete page</button>
+        </div>
+      </div>
+    )}
+
+    <div class="flex-1 flex min-h-0">
+      <div class="flex-1 bg-slate-100 p-3 min-w-0">
+        <iframe id="preview" src={boot.previewUrl} class="w-full h-full rounded-lg border border-slate-300 bg-white" title="Page preview"></iframe>
+      </div>
+
+      <aside class="w-80 shrink-0 border-l border-slate-200 bg-white overflow-y-auto">
+        <section class="p-4 border-b border-slate-100">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Blocks</h2>
+          <ul id="block-list" class="space-y-1 text-sm"></ul>
+          <div id="add-block" class="mt-3 hidden">
+            <div class="flex gap-2">
+              <select id="add-kind" class="grow rounded-lg border border-slate-300 px-2 py-1.5 text-sm"></select>
+              <button id="add-btn" class="rounded-lg bg-brand-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-800">Add</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="p-4">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-2">Selected block</h2>
+          <div id="block-editor" class="text-sm text-slate-500">Click a block in the preview to edit it. Text can be edited directly on the page.</div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script type="application/json" id="boot" set:html={JSON.stringify(boot)} />
+  <script src="../../../../scripts/editor.ts"></script>
+</AdminLayout>

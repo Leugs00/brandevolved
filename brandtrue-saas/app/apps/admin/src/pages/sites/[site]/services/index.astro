@@ -1,0 +1,88 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { statusStyle } from "../../../../lib/content.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const url = new URL(Astro.request.url);
+const fStatus = url.searchParams.get("status") ?? "";
+const fCat = url.searchParams.get("category") ?? "";
+const fFeatured = url.searchParams.get("featured") ?? "";
+
+let q = db
+  .from("services")
+  .select("id, name, status, featured, sort_order, updated_at, service_categories(name)")
+  .eq("site_id", site.id)
+  .order("sort_order");
+if (fStatus) q = q.eq("status", fStatus);
+if (fCat) q = q.eq("service_category_id", fCat);
+if (fFeatured) q = q.eq("featured", fFeatured === "yes");
+const [{ data: services }, { data: cats }] = await Promise.all([
+  q,
+  db.from("service_categories").select("id, name").eq("site_id", site.id).order("sort_order"),
+]);
+
+const sel = "rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm";
+---
+
+<AdminLayout title={`Services · ${site.name}`} site={site} active="services">
+  <div class="p-8 max-w-5xl">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">Services</h1>
+        <p class="mt-1 text-sm text-slate-500">The work you offer. Published services can appear on service pages and be linked to projects and testimonials.</p>
+      </div>
+      <a href={`/sites/${site.id}/services/new`} class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add a service</a>
+    </div>
+
+    <form method="get" class="mt-4 flex flex-wrap gap-2">
+      <select name="status" class={sel} onchange="this.form.submit()">
+        <option value="">All statuses</option>
+        {["draft", "published", "archived"].map((s) => <option value={s} selected={fStatus === s}>{s}</option>)}
+      </select>
+      <select name="category" class={sel} onchange="this.form.submit()">
+        <option value="">All categories</option>
+        {(cats ?? []).map((c) => <option value={c.id} selected={fCat === c.id}>{c.name}</option>)}
+      </select>
+      <select name="featured" class={sel} onchange="this.form.submit()">
+        <option value="">Featured or not</option>
+        <option value="yes" selected={fFeatured === "yes"}>Featured only</option>
+      </select>
+    </form>
+
+    <div class="mt-4 rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      {(services ?? []).length === 0 ? (
+        <div class="px-5 py-12 text-center">
+          <p class="font-medium text-slate-700">No services yet</p>
+          <p class="text-sm text-slate-500 mt-1">Add your first service to begin.</p>
+        </div>
+      ) : (
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-slate-500 border-b border-slate-100">
+              <th class="px-4 py-2.5 font-medium">Service</th>
+              <th class="px-4 py-2.5 font-medium">Category</th>
+              <th class="px-4 py-2.5 font-medium">Status</th>
+              <th class="px-4 py-2.5 font-medium">Featured</th>
+              <th class="px-4 py-2.5 font-medium">Order</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(services ?? []).map((s: any) => (
+              <tr class="border-b border-slate-50 hover:bg-slate-50">
+                <td class="px-4 py-2.5"><a href={`/sites/${site.id}/services/${s.id}`} class="font-medium text-brand-800 hover:underline">{s.name}</a></td>
+                <td class="px-4 py-2.5 text-slate-600">{(s.service_categories as { name: string } | null)?.name ?? "—"}</td>
+                <td class="px-4 py-2.5"><span class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", statusStyle[s.status]]}>{s.status}</span></td>
+                <td class="px-4 py-2.5">{s.featured ? <span class="text-amber-500">★</span> : <span class="text-slate-300">—</span>}</td>
+                <td class="px-4 py-2.5 text-slate-400 tabular-nums">{s.sort_order}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  </div>
+</AdminLayout>

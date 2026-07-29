@@ -1,0 +1,110 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../lib/site.ts";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+let error: string | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "");
+  if (action === "add") {
+    const email = String(form.get("email") ?? "").trim().toLowerCase();
+    const { error: e } = await db.from("contacts").insert({
+      organization_id: site.organization_id,
+      site_id: site.id,
+      email,
+      name: String(form.get("name") ?? "").trim() || null,
+      tags: String(form.get("tags") ?? "").split(",").map((t) => t.trim()).filter(Boolean),
+      source: "manual",
+    });
+    error = e?.message ?? null;
+  } else if (action === "toggle") {
+    const id = String(form.get("id") ?? "");
+    const subscribed = form.get("subscribed") === "true";
+    await db.from("contacts").update({ subscribed: !subscribed }).eq("id", id);
+  } else if (action === "delete") {
+    await db.from("contacts").delete().eq("id", String(form.get("id") ?? ""));
+  }
+  if (!error) return Astro.redirect(`/sites/${site.id}/contacts`);
+}
+
+const { data: contacts } = await db
+  .from("contacts")
+  .select("id, email, name, tags, subscribed, source, created_at")
+  .eq("site_id", site.id)
+  .order("created_at", { ascending: false });
+---
+
+<AdminLayout title={`Contacts · ${site.name}`} site={site} active="contacts">
+  <div class="p-8 max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight mb-1">Contacts</h1>
+    <p class="text-sm text-slate-500 mb-6">Subscribers and everyone who has opted in.</p>
+
+    <form method="post" class="mb-6 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4">
+      <input type="hidden" name="action" value="add" />
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Email</span>
+        <input name="email" type="email" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-56" />
+      </label>
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Name</span>
+        <input name="name" class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-44" />
+      </label>
+      <label class="block text-sm">
+        <span class="block text-xs text-slate-500 mb-1">Tags (comma-separated)</span>
+        <input name="tags" class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-44" />
+      </label>
+      <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">Add contact</button>
+      {error && <p class="text-sm text-red-600 w-full">{error}</p>}
+    </form>
+
+    <div class="rounded-xl border border-slate-200 bg-white overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-slate-500 border-b border-slate-100">
+            <th class="px-4 py-2.5 font-medium">Email</th>
+            <th class="px-4 py-2.5 font-medium">Name</th>
+            <th class="px-4 py-2.5 font-medium">Tags</th>
+            <th class="px-4 py-2.5 font-medium">Source</th>
+            <th class="px-4 py-2.5 font-medium">Subscribed</th>
+            <th class="px-4 py-2.5"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {(contacts ?? []).map((c) => (
+            <tr class="border-b border-slate-50">
+              <td class="px-4 py-2.5 font-medium">{c.email}</td>
+              <td class="px-4 py-2.5">{c.name}</td>
+              <td class="px-4 py-2.5">
+                {(c.tags ?? []).map((t) => <span class="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs mr-1">{t}</span>)}
+              </td>
+              <td class="px-4 py-2.5 text-slate-500">{c.source}</td>
+              <td class="px-4 py-2.5">
+                <form method="post">
+                  <input type="hidden" name="action" value="toggle" />
+                  <input type="hidden" name="id" value={c.id} />
+                  <input type="hidden" name="subscribed" value={String(c.subscribed)} />
+                  <button class:list={["rounded-full px-2.5 py-0.5 text-xs font-medium", c.subscribed ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"]}>
+                    {c.subscribed ? "Yes" : "No"}
+                  </button>
+                </form>
+              </td>
+              <td class="px-4 py-2.5 text-right">
+                <form method="post" onsubmit="return confirm('Delete this contact?')">
+                  <input type="hidden" name="action" value="delete" />
+                  <input type="hidden" name="id" value={c.id} />
+                  <button class="text-xs text-red-500 hover:underline">Delete</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(!contacts || contacts.length === 0) && <p class="px-4 py-6 text-slate-500 text-sm">No contacts yet.</p>}
+    </div>
+  </div>
+</AdminLayout>

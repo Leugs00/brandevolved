@@ -1,0 +1,142 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { canEditStructure } from "../../../../lib/nav.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const canEdit = canEditStructure(membership?.role);
+let error: string | null = null;
+
+const kindSchemas: Record<string, unknown[]> = {
+  portfolio: [
+    { name: "title", label: "Project title", type: "text", required: true, help: "The project's name as shown on the site." },
+    { name: "image", label: "Image", type: "image", help: "A photo or screenshot of the work." },
+    { name: "description", label: "Description", type: "textarea", help: "A short paragraph about the project." },
+    { name: "link", label: "Link", type: "url", help: "Optional link to the live project or a case study." },
+  ],
+  product: [
+    { name: "title", label: "Product name", type: "text", required: true, help: "The product as customers know it." },
+    { name: "image", label: "Image", type: "image", help: "Product photo." },
+    { name: "price", label: "Price", type: "text", help: "E.g. $49 or from $120." },
+    { name: "description", label: "Description", type: "textarea", help: "What it is and why it's great." },
+  ],
+  service: [
+    { name: "title", label: "Service name", type: "text", required: true, help: "The service as clients know it. This name appears as a checkbox option in other databases." },
+    { name: "description", label: "Description", type: "textarea", help: "One or two sentences describing the service." },
+    { name: "link", label: "Page link", type: "url", help: "Where 'read more' should go — usually the service's page, e.g. /services/web-design." },
+    { name: "price", label: "Price / from", type: "text", help: "Optional price indication. Leave empty to hide." },
+  ],
+  testimonial: [
+    { name: "quote", label: "Quote", type: "textarea", required: true, help: "The testimonial itself, in the client's own words." },
+    { name: "headline", label: "Headline", type: "text", help: "A short punchy summary shown above the quote." },
+    { name: "author", label: "Person's name", type: "text", required: true, help: "Who said it." },
+    { name: "role", label: "Role / job title", type: "text", help: "Their position, e.g. Owner." },
+    { name: "business_name", label: "Business name", type: "text", help: "The company they represent." },
+    { name: "location", label: "Location", type: "text", help: "Town or city." },
+    { name: "website", label: "Website", type: "url", help: "Their site (https://…)." },
+    { name: "industry", label: "Industry", type: "text", help: "Their field — useful for filtering." },
+    { name: "services", label: "Services used", type: "checkboxes", options_from: "services", help: "Tick the services this client used. Manage the list in the Services database." },
+  ],
+  custom: [{ name: "title", label: "Title", type: "text", required: true, help: "The item's name." }],
+};
+
+if (Astro.request.method === "POST" && canEdit) {
+  const form = await Astro.request.formData();
+  const action = String(form.get("action") ?? "create");
+
+  if (action === "star") {
+    const id = String(form.get("id") ?? "");
+    const starred = form.get("starred") === "true";
+    await db.from("collections").update({ starred: !starred }).eq("id", id);
+    return Astro.redirect(`/sites/${site.id}/collections`);
+  }
+
+  const name = String(form.get("name") ?? "").trim();
+  const slug = String(form.get("slug") ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  const kind = String(form.get("kind") ?? "custom") as keyof typeof kindSchemas;
+  if (name && slug) {
+    const { data: created, error: e } = await db
+      .from("collections")
+      .insert({
+        organization_id: site.organization_id,
+        site_id: site.id,
+        name,
+        slug,
+        kind: kind as never,
+        item_schema: (kindSchemas[kind] ?? kindSchemas.custom) as never,
+      })
+      .select("id")
+      .single();
+    if (e) error = e.message;
+    else return Astro.redirect(`/sites/${site.id}/collections/${created.id}`);
+  }
+}
+
+const { data: collections } = await db
+  .from("collections")
+  .select("id, name, slug, kind, starred, collection_items(count)")
+  .eq("site_id", site.id)
+  .order("name");
+---
+
+<AdminLayout title={`Databases · ${site.name}`} site={site} active="collections">
+  <div class="p-8 max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight mb-1">Databases</h1>
+    <p class="text-sm text-slate-500 mb-6">
+      The content tables behind your site — portfolios, products, services, testimonials.
+      Show one on a page with a “Database items” or “Testimonials” block. Star a database to pin it to the sidebar.
+    </p>
+
+    {canEdit && (
+      <form method="post" class="mb-6 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4">
+        <input type="hidden" name="action" value="create" />
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Name</span>
+          <input name="name" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-48" placeholder="Portfolio" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Slug (used by page blocks)</span>
+          <input name="slug" required class="rounded-lg border border-slate-300 px-2.5 py-1.5 w-40" placeholder="portfolio" />
+        </label>
+        <label class="block text-sm">
+          <span class="block text-xs text-slate-500 mb-1">Type (sets the starting fields)</span>
+          <select name="kind" class="rounded-lg border border-slate-300 px-2.5 py-1.5">
+            {Object.keys(kindSchemas).map((k) => <option value={k}>{k}</option>)}
+          </select>
+        </label>
+        <button class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">New database</button>
+        {error && <p class="text-sm text-red-600 w-full">{error}</p>}
+      </form>
+    )}
+
+    <div class="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      {(collections ?? []).map((c) => (
+        <div class="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
+          {canEdit ? (
+            <form method="post">
+              <input type="hidden" name="action" value="star" />
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="starred" value={String(c.starred)} />
+              <button class="text-lg leading-none" title={c.starred ? "Unstar — remove from sidebar" : "Star — pin to sidebar"}>
+                <span class={c.starred ? "text-amber-500" : "text-slate-300 hover:text-amber-400"}>★</span>
+              </button>
+            </form>
+          ) : (
+            c.starred && <span class="text-amber-500 text-lg leading-none">★</span>
+          )}
+          <a href={`/sites/${site.id}/collections/${c.id}`} class="flex grow items-center justify-between gap-4">
+            <div>
+              <p class="font-medium">{c.name}</p>
+              <p class="text-sm text-slate-500">slug: {c.slug} · {c.kind}</p>
+            </div>
+            <span class="text-sm text-slate-400">{(c.collection_items as unknown as { count: number }[])[0]?.count ?? 0} items</span>
+          </a>
+        </div>
+      ))}
+      {(!collections || collections.length === 0) && <p class="px-5 py-6 text-slate-500 text-sm">No databases yet.</p>}
+    </div>
+  </div>
+</AdminLayout>

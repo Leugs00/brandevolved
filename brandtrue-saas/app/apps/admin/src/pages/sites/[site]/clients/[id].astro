@@ -1,0 +1,190 @@
+---
+import AdminLayout from "../../../../layouts/AdminLayout.astro";
+import Field from "../../../../components/Field.astro";
+import { loadSite } from "../../../../lib/site.ts";
+import { loadLookups, slugify } from "../../../../lib/content.ts";
+import { showcaseClientSchema } from "@brandevolved/shared/content";
+
+const { db } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return Astro.redirect("/");
+
+const isNew = Astro.params.id === "new";
+const lookups = await loadLookups(db, site.id);
+let error: string | null = null;
+let values: Record<string, any> = {
+  business_name: "", name: "", role: "", location: "", website_url: "", public_bio: "",
+  industry_id: "", logo_url: "", photo_url: "", permission_to_publish: false, featured: false, status: "active",
+};
+
+if (!isNew) {
+  const { data } = await db.from("showcase_clients").select("*").eq("id", Astro.params.id!).eq("site_id", site.id).maybeSingle();
+  if (!data) return Astro.redirect(`/sites/${site.id}/clients`);
+  values = data;
+}
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  if (form.get("action") === "delete" && !isNew) {
+    const { error: e } = await db.from("showcase_clients").delete().eq("id", Astro.params.id!);
+    if (e) error = "This client can't be deleted while they still have projects or testimonials. Remove those first.";
+    else return Astro.redirect(`/sites/${site.id}/clients`);
+  } else {
+    const raw = {
+      business_name: String(form.get("business_name") ?? "").trim(),
+      name: String(form.get("name") ?? "").trim() || null,
+      role: String(form.get("role") ?? "").trim() || null,
+      location: String(form.get("location") ?? "").trim() || null,
+      website_url: String(form.get("website_url") ?? "").trim(),
+      public_bio: String(form.get("public_bio") ?? "").trim() || null,
+      industry_id: String(form.get("industry_id") ?? "") || null,
+      logo_url: String(form.get("logo_url") ?? "").trim(),
+      photo_url: String(form.get("photo_url") ?? "").trim(),
+      permission_to_publish: form.get("permission_to_publish") === "on",
+      featured: form.get("featured") === "on",
+      status: String(form.get("status") ?? "active"),
+      slug: slugify(String(form.get("slug") ?? "") || String(form.get("business_name") ?? "")),
+    };
+    values = { ...values, ...raw };
+    const parsed = showcaseClientSchema.safeParse(raw);
+    if (!parsed.success) {
+      error = parsed.error.issues[0]?.message ?? "Please check the form.";
+    } else {
+      const row = { ...parsed.data, slug: raw.slug };
+      if (isNew) {
+        const { data: created, error: e } = await db
+          .from("showcase_clients")
+          .insert({ ...row, organization_id: site.organization_id, site_id: site.id } as never)
+          .select("id")
+          .single();
+        if (e) error = e.message;
+        else return Astro.redirect(`/sites/${site.id}/clients/${created.id}`);
+      } else {
+        const { error: e } = await db.from("showcase_clients").update(row as never).eq("id", Astro.params.id!);
+        if (e) error = e.message;
+        else return Astro.redirect(`/sites/${site.id}/clients`);
+      }
+    }
+  }
+}
+
+const inputCls = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-brand-600";
+---
+
+<AdminLayout title={`${isNew ? "New client" : values.business_name} · ${site.name}`} site={site} active="clients">
+  <div class="p-8 max-w-3xl">
+    <a href={`/sites/${site.id}/clients`} class="text-sm text-slate-500 hover:text-slate-800">← Clients</a>
+    <h1 class="mt-1 font-serif text-3xl font-semibold tracking-tight">{isNew ? "Add a client" : values.business_name}</h1>
+
+    {error && <p class="mt-4 text-sm bg-red-50 text-red-700 rounded-lg px-3 py-2">{error}</p>}
+    {values.status === "confidential" && (
+      <p class="mt-4 text-sm bg-red-50 text-red-800 rounded-lg px-3 py-2">
+        This client, their projects, and their testimonials will be hidden from the public website.
+      </p>
+    )}
+
+    <form method="post" class="mt-6 space-y-6">
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800">Public information</h2>
+        <p class="text-xs text-slate-500 mb-4">Only include details suitable for the public website.</p>
+        <Field label="Business name" help="The business or brand name that may appear on the website." required htmlFor="business_name">
+          <input id="business_name" name="business_name" value={values.business_name} required placeholder="Radiant Wellness" class={inputCls} />
+        </Field>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Client name" help="The person's name — only when you have permission to show it publicly." optional>
+            <input name="name" value={values.name ?? ""} placeholder="Sarah Mitchell" class={inputCls} />
+          </Field>
+          <Field label="Role" help="Their role, such as Founder, Director or Practitioner." optional>
+            <input name="role" value={values.role ?? ""} placeholder="Founder" class={inputCls} />
+          </Field>
+        </div>
+        <Field label="Public introduction" help="A short description of the client or business for the public website." optional>
+          <textarea name="public_bio" rows="3" class={inputCls}>{values.public_bio ?? ""}</textarea>
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Business details</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Industry" help="The closest business category. Helps visitors filter projects and testimonials." optional>
+            <select name="industry_id" class={inputCls}>
+              <option value="">—</option>
+              {lookups.industries.map((i) => <option value={i.id} selected={values.industry_id === i.id}>{i.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Location" help="The public location to display, such as Auckland or Online." optional>
+            <input name="location" value={values.location ?? ""} placeholder="Auckland" class={inputCls} />
+          </Field>
+        </div>
+        <Field label="Website address" help="The client's public website, including https://" optional>
+          <input name="website_url" type="url" value={values.website_url ?? ""} placeholder="https://example.com" class={inputCls} />
+        </Field>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Images</h2>
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          <Field label="Business logo" help="A clear logo approved for public use.">
+            <span class="flex items-center gap-2">
+              {values.logo_url && <img src={values.logo_url} class="h-10 w-14 object-contain rounded border border-slate-200" alt="" />}
+              <input name="logo_url" value={values.logo_url ?? ""} placeholder="Image URL or upload →" class={inputCls} />
+              <input type="file" accept="image/*" data-upload-into="logo_url" class="text-xs w-28" />
+            </span>
+          </Field>
+          <Field label="Client photo" help="A professional photo — only when the client approved its use.">
+            <span class="flex items-center gap-2">
+              {values.photo_url && <img src={values.photo_url} class="h-10 w-10 object-cover rounded-full border border-slate-200" alt="" />}
+              <input name="photo_url" value={values.photo_url ?? ""} placeholder="Image URL or upload →" class={inputCls} />
+              <input type="file" accept="image/*" data-upload-into="photo_url" class="text-xs w-28" />
+            </span>
+          </Field>
+        </div>
+      </section>
+
+      <section class="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Permission &amp; privacy</h2>
+        <label class="flex items-start gap-2.5 mb-3">
+          <input type="checkbox" name="permission_to_publish" checked={values.permission_to_publish} class="mt-1" />
+          <span class="text-sm">
+            <span class="font-medium">Permission to publish</span>
+            <span class="block text-xs text-slate-500">Turn this on only when the client has agreed their business, project and testimonial may be shown publicly.</span>
+          </span>
+        </label>
+        <Field label="Client status" help="Choose “Confidential” when the client or their work must not appear on the public website.">
+          <select name="status" class={inputCls} onchange="this.closest('form').querySelector('#conf-warn').hidden = this.value !== 'confidential'">
+            {["active", "past", "confidential", "archived"].map((s) => <option value={s} selected={values.status === s}>{s}</option>)}
+          </select>
+        </Field>
+        <p id="conf-warn" hidden={values.status !== "confidential"} class="text-xs bg-red-50 text-red-700 rounded-lg px-3 py-2">
+          This client, their projects, and their testimonials will be hidden from the public website.
+        </p>
+        <label class="flex items-center gap-2 mt-3 text-sm">
+          <input type="checkbox" name="featured" checked={values.featured} /> Featured client
+        </label>
+      </section>
+
+      <div class="flex items-center gap-3">
+        <button class="rounded-lg bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-800">{isNew ? "Add client" : "Save changes"}</button>
+        {!isNew && (
+          <button name="action" value="delete" formnovalidate onclick="return confirm('Delete this client?')" class="text-sm text-red-500 hover:underline">Delete client</button>
+        )}
+      </div>
+    </form>
+  </div>
+
+  <script is:inline define:vars={{ siteId: site.id }}>
+    document.querySelectorAll("input[type=file][data-upload-into]").forEach((f) => {
+      f.addEventListener("change", async () => {
+        const file = f.files && f.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append("site_id", siteId);
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const out = await res.json();
+        if (!res.ok) return alert(out.error || "Upload failed");
+        f.closest("form").querySelector(`[name="${f.dataset.uploadInto}"]`).value = out.url;
+      });
+    });
+  </script>
+</AdminLayout>

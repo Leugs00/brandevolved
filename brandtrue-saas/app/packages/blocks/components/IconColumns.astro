@@ -1,0 +1,103 @@
+---
+import type { RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data } = Astro.props;
+const items: Record<string, any>[] = Array.isArray(data.items) ? data.items : [];
+const style = String(data.style ?? "plain"); // plain | mint | watercolor | dark
+const wash = data.wash_image ?? {};
+const headingTone = String(data.heading_tone ?? "primary"); // primary | accent
+const dividers = data.dividers === "yes";
+---
+
+<section
+  class:list={["lm-icons", `lm-icons--${style}`, { "lm-icons--dividers": dividers }]}
+  style={wash.src ? `--wash:url('${wash.src}')` : undefined}
+>
+  <div class="lm-icons__inner">
+    {data.script_line && <p class="lm-script lm-icons__script" data-field="script_line" data-anim>{data.script_line}</p>}
+    {data.eyebrow && <p class="lm-eyebrow" data-field="eyebrow" data-anim>{data.eyebrow}</p>}
+    {data.heading && (
+      <h2 class:list={[`lm-icons__heading--${headingTone}`]} data-field="heading" data-anim>{data.heading}</h2>
+    )}
+    {data.intro && <p class="lm-icons__intro" data-field="intro" data-anim style="--anim-delay:.15s">{data.intro}</p>}
+    {data.bridge_text && (
+      <p class="lm-icons__bridge" data-field="bridge_text" data-anim style="--anim-delay:.25s">{data.bridge_text}</p>
+    )}
+    <div class="lm-icons__grid">
+      {items.map((item, i) => (
+        <div class="lm-icons__item" data-anim style={`--anim-delay:${0.12 * (i % 3)}s`}>
+          {item.icon?.src && <img class="lm-icons__icon" src={item.icon.src} alt={item.icon.alt ?? ""} loading="lazy" />}
+          {item.title && <h3>{item.title}</h3>}
+          {item.body && <p>{item.body}</p>}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .lm-icons { padding: clamp(3rem, 7vw, 5.5rem) 1.5rem; background: var(--c-bg); }
+  .lm-icons--mint { background: var(--c-cream); }
+  .lm-icons--watercolor {
+    background: var(--c-bg) var(--wash, none) top center / 100% auto no-repeat;
+  }
+  .lm-icons--dark {
+    background: var(--c-primary-deep, #0a5c52) var(--wash, none) center / cover no-repeat;
+  }
+  .lm-icons__inner { max-width: 68rem; margin: 0 auto; text-align: center; }
+  .lm-icons__script { margin: 0 0 0.6rem; }
+  h2 {
+    font-family: var(--f-heading); font-weight: 600; font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+    line-height: 1.2; margin: 0 auto 1.2rem; max-width: 44rem; white-space: pre-line;
+  }
+  .lm-icons__heading--primary { color: var(--c-primary); }
+  .lm-icons__heading--accent { color: var(--c-accent); }
+  .lm-icons__intro { max-width: 44rem; margin: 0 auto 1rem; line-height: 1.75; white-space: pre-line; }
+  .lm-icons__bridge {
+    color: var(--c-primary); font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+    margin: 1.4rem auto; font-size: 1rem;
+  }
+  .lm-icons__grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: clamp(1.5rem, 4vw, 3rem); margin-top: 2.5rem; text-align: center;
+  }
+  .lm-icons__item { max-width: 22rem; margin: 0 auto; width: 100%; }
+  .lm-icons__icon { height: 5.5rem; width: auto; margin-bottom: 1rem; object-fit: contain; }
+  h3 {
+    font-family: var(--f-heading); font-weight: 600; color: var(--c-primary);
+    font-size: 1.35rem; line-height: 1.25; margin: 0 0 0.7rem;
+  }
+  /* reserve two heading lines so the paragraphs start level across columns */
+  @media (min-width: 46rem) {
+    .lm-icons:not(.lm-icons--dark) .lm-icons__grid h3 { min-height: 2.5em; }
+  }
+  .lm-icons__item p { line-height: 1.7; font-size: 0.95rem; margin: 0; }
+
+  /* vertical gold lines between columns */
+  @media (min-width: 46rem) {
+    .lm-icons--dividers .lm-icons__item + .lm-icons__item {
+      border-left: 1px solid var(--c-accent);
+      padding-left: clamp(1.5rem, 3vw, 2.5rem);
+    }
+  }
+
+  /* dark: left-aligned compact icon rows on the teal background */
+  .lm-icons--dark .lm-icons__inner { text-align: left; }
+  .lm-icons--dark h2 { color: #fff; margin-left: 0; }
+  .lm-icons--dark .lm-icons__intro { margin-left: 0; color: #e7efed; }
+  .lm-icons--dark :global(.lm-eyebrow) { color: var(--c-accent); border-color: var(--c-accent); }
+  .lm-icons--dark .lm-icons__grid {
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 1.4rem clamp(1.5rem, 4vw, 3rem); max-width: 54rem;
+  }
+  .lm-icons--dark .lm-icons__item {
+    display: flex; align-items: center; gap: 1rem; text-align: left; max-width: none; margin: 0;
+  }
+  .lm-icons--dark .lm-icons__icon { height: 3.2rem; margin: 0; flex: 0 0 auto; }
+  .lm-icons--dark h3 { color: #fff; font-family: var(--f-body); font-weight: 500; font-size: 1rem; margin: 0; }
+</style>

@@ -1,0 +1,166 @@
+---
+import SiteFrame from "@brandevolved/blocks/components/SiteFrame.astro";
+import BlockRenderer from "@brandevolved/blocks/BlockRenderer.astro";
+import type { RenderBlock, RenderCollection, RenderContext, RenderForm } from "@brandevolved/blocks";
+import { loadSite } from "../../../../lib/site.ts";
+import { isAgency } from "../../../../lib/nav.ts";
+import { env } from "../../../../lib/supabase.ts";
+
+const { db, membership } = Astro.locals;
+const site = await loadSite(db, Astro.params.site!);
+if (!site) return new Response("Not found", { status: 404 });
+
+const { data: page } = await db
+  .from("pages")
+  .select("id, path, title, meta_description, status")
+  .eq("id", Astro.params.page!)
+  .eq("site_id", site.id)
+  .maybeSingle();
+if (!page) return new Response("Not found", { status: 404 });
+
+const role = membership?.role;
+const editable = Astro.url.searchParams.get("edit") === "1" && !!role;
+const canEditAll = isAgency(role);
+
+const [{ data: blocks }, { data: collections }, { data: items }, { data: forms }] = await Promise.all([
+  db.from("content_blocks").select("id, kind, data, locked, position").eq("page_id", page.id).order("position"),
+  db.from("collections").select("id, slug, name, kind").eq("site_id", site.id),
+  db.from("collection_items").select("collection_id, data, position").eq("site_id", site.id).eq("published", true).order("position"),
+  db.from("forms").select("id, slug, name, fields, success_message, honeypot_enabled").eq("site_id", site.id),
+]);
+
+const collectionMap: Record<string, RenderCollection> = {};
+for (const c of collections ?? []) {
+  collectionMap[c.slug] = {
+    ...c,
+    items: (items ?? []).filter((i) => i.collection_id === c.id).map((i) => i.data as Record<string, unknown>),
+  };
+}
+const formMap: Record<string, RenderForm> = {};
+for (const f of forms ?? []) {
+  formMap[f.slug] = { ...f, fields: (f.fields as RenderForm["fields"]) ?? [] };
+}
+
+// published projects for the project_list block preview
+const [{ data: pjRows }, { data: pjSvc }, { data: pjRes }] = await Promise.all([
+  db.from("public_projects").select("*").eq("site_id", site.id).order("sort_order"),
+  db.from("public_project_services").select("project_id, service_slug"),
+  db.from("public_project_results").select("project_id, result_type_slug"),
+]);
+const svcBy = new Map<string, string[]>();
+for (const s of pjSvc ?? []) svcBy.set(s.project_id, [...(svcBy.get(s.project_id) ?? []), s.service_slug].filter(Boolean) as string[]);
+const resBy = new Map<string, string[]>();
+for (const r of pjRes ?? []) resBy.set(r.project_id, [...(resBy.get(r.project_id) ?? []), r.result_type_slug].filter(Boolean) as string[]);
+const projects = (pjRows ?? []).map((p: any) => ({
+  id: p.id, slug: p.slug, title: p.title, project_summary: p.project_summary, hero_image_url: p.hero_image_url,
+  featured: p.featured, show_in_portfolio: p.show_in_portfolio, case_study_enabled: p.case_study_enabled,
+  business_name: p.business_name, industry_slug: p.industry_slug, industry_name: p.industry_name,
+  project_type_slug: p.project_type_slug, project_type_name: p.project_type_name,
+  service_slugs: svcBy.get(p.id) ?? [], result_type_slugs: resBy.get(p.id) ?? [],
+}));
+
+// published testimonials for the testimonial_carousel block preview
+const [{ data: tRows }, { data: tSvc }] = await Promise.all([
+  db.from("public_testimonials").select("*").eq("site_id", site.id).order("sort_order"),
+  db.from("testimonial_services").select("testimonial_id, services(slug)").eq("site_id", site.id),
+]);
+const tSvcBy = new Map<string, string[]>();
+for (const row of tSvc ?? []) {
+  const slug = (row.services as any)?.slug;
+  if (slug) tSvcBy.set(row.testimonial_id, [...(tSvcBy.get(row.testimonial_id) ?? []), slug]);
+}
+const testimonials = (tRows ?? []).map((t: any) => ({
+  id: t.id, quote: t.quote, short_quote: t.short_quote,
+  display_name: t.display_name, display_role: t.display_role, display_business: t.display_business,
+  display_photo: t.display_photo, client_location: t.client_location, client_website: t.client_website,
+  rating: t.rating == null ? null : Number(t.rating), featured: !!t.featured,
+  service_slugs: tSvcBy.get(t.id) ?? [],
+}));
+
+const context: RenderContext = {
+  siteId: site.id,
+  supabaseUrl: env.url,
+  anonKey: env.anonKey,
+  collections: collectionMap,
+  forms: formMap,
+  projects,
+  testimonials,
+  editable,
+};
+
+const renderBlocks: RenderBlock[] = (blocks ?? []).map((b) => ({
+  ...b,
+  data: (b.data as Record<string, unknown>) ?? {},
+}));
+
+const editorConfig = {
+  editable: Object.fromEntries(renderBlocks.map((b) => [b.id, canEditAll || !b.locked])),
+};
+---
+
+<SiteFrame
+  siteName={site.name}
+  title={page.title}
+  description={page.meta_description}
+  settings={site.settings as never}
+  currentPath={page.path}
+>
+  {renderBlocks.map((block) => <BlockRenderer block={block} context={context} />)}
+
+  {editable && (
+    <script slot="body-end" type="application/json" id="be-editor-config" set:html={JSON.stringify(editorConfig)} />
+  )}
+  {editable && (
+    <script slot="body-end" is:inline>
+      (function () {
+        var config = JSON.parse(document.getElementById("be-editor-config").textContent);
+        var style = document.createElement("style");
+        style.textContent =
+          ".be-block[data-editable=true]{cursor:pointer;position:relative;transition:outline-color .12s}" +
+          ".be-block[data-editable=true]:hover{outline:2px dashed #0d9488;outline-offset:-2px}" +
+          ".be-block.be-selected{outline:2px solid #0d9488 !important;outline-offset:-2px}" +
+          ".be-block[data-editable=false]{position:relative}" +
+          ".be-block[data-editable=false]::after{content:'🔒 locked';position:absolute;top:8px;right:8px;background:#334155;color:#fff;font:11px system-ui;padding:2px 8px;border-radius:99px;opacity:.85}" +
+          "[contenteditable=true]:focus{outline:1px dotted #0d9488;outline-offset:2px}" +
+          "a{pointer-events:none}";
+        document.head.appendChild(style);
+
+        var send = function (msg) { parent.postMessage(Object.assign({ source: "be-editor" }, msg), "*"); };
+        var debounceTimers = {};
+
+        document.querySelectorAll(".be-block[data-block-id]").forEach(function (el) {
+          var id = el.getAttribute("data-block-id");
+          var editable = !!config.editable[id];
+          el.setAttribute("data-editable", String(editable));
+          if (!editable) return;
+
+          el.addEventListener("click", function (e) {
+            if (!(e.target instanceof Element) || !e.target.closest("[contenteditable=true]")) e.preventDefault();
+            document.querySelectorAll(".be-selected").forEach(function (s) { s.classList.remove("be-selected"); });
+            el.classList.add("be-selected");
+            send({ type: "select", blockId: id });
+          });
+
+          el.querySelectorAll("[data-field]").forEach(function (fieldEl) {
+            var field = fieldEl.getAttribute("data-field");
+            if (field === "image") return; // images replaced via panel / click
+            fieldEl.setAttribute("contenteditable", "true");
+            fieldEl.addEventListener("input", function () {
+              clearTimeout(debounceTimers[id + field]);
+              debounceTimers[id + field] = setTimeout(function () {
+                var value = field === "html" ? fieldEl.innerHTML : field === "text" ? fieldEl.innerText : fieldEl.textContent;
+                send({ type: "field", blockId: id, field: field, value: value });
+              }, 500);
+            });
+          });
+        });
+
+        window.addEventListener("message", function (e) {
+          if (e.data && e.data.type === "be:reload") location.reload();
+        });
+
+        send({ type: "ready" });
+      })();
+    </script>
+  )}
+</SiteFrame>

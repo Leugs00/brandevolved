@@ -1,0 +1,67 @@
+---
+import { filterItems, type RenderContext } from "../src/index.ts";
+
+interface Props {
+  data: Record<string, any>;
+  context: RenderContext;
+}
+
+const { data, context } = Astro.props;
+const collection = context.collections[String(data.collection_slug ?? "testimonials")];
+const limit = Number(data.limit) > 0 ? Number(data.limit) : 6;
+const items = filterItems(collection?.items ?? [], data.filter_field, data.filter_value).slice(
+  0,
+  limit,
+) as Record<string, any>[];
+---
+
+<section class="be-testimonials">
+  {data.heading && <h2 data-field="heading">{data.heading}</h2>}
+  {items.length === 0 && context.editable && (
+    <p class="be-testimonials__warn">
+      No testimonials match{data.filter_value ? ` the filter “${data.filter_field}: ${data.filter_value}”` : ""} — add some in the Testimonials database.
+    </p>
+  )}
+  <div class="be-testimonials__row">
+    {items.map((t) => (
+      <blockquote>
+        {t.headline && <p class="be-testimonials__headline">{t.headline}</p>}
+        <p class="be-testimonials__quote">“{t.quote}”</p>
+        <footer>
+          <strong>{t.author}</strong>
+          {(t.role || t.business_name) && (
+            <span> — {[t.role, t.business_name].filter(Boolean).join(", ")}</span>
+          )}
+          {t.location && <span class="be-testimonials__loc">{t.location}</span>}
+          {t.website && (
+            <a class="be-testimonials__site" href={t.website} rel="nofollow noopener">{String(t.website).replace(/^https?:\/\//, "")}</a>
+          )}
+          {Array.isArray(t.services) && t.services.length > 0 && (
+            <span class="be-testimonials__tags">
+              {t.services.map((s: string) => <em>{s}</em>)}
+            </span>
+          )}
+        </footer>
+      </blockquote>
+    ))}
+  </div>
+</section>
+
+<style>
+  .be-testimonials { background: #f8fafc; padding: 3rem 1.25rem; font-family: var(--f-body, system-ui, sans-serif); }
+  .be-testimonials h2 { font-family: var(--f-heading, Georgia, serif); color: var(--c-text, #1f2937); text-align: center; margin: 0 0 2rem; }
+  .be-testimonials__warn { max-width: 40rem; margin: 0 auto; background: #fffbeb; color: #92400e; padding: 0.75rem 1rem; border-radius: 0.5rem; }
+  .be-testimonials__row { max-width: 64rem; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.5rem; }
+  blockquote { background: #fff; border-radius: 0.75rem; padding: 1.5rem; margin: 0; border: 1px solid #e5e7eb; }
+  .be-testimonials__headline { margin: 0 0 0.5rem; font-weight: 700; color: var(--c-primary, #008378); }
+  .be-testimonials__quote { margin: 0 0 1rem; color: var(--c-text, #1f2937); line-height: 1.6; font-style: italic; }
+  footer { color: #6b7280; font-size: 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  footer strong { color: var(--c-text, #1f2937); }
+  .be-testimonials__loc { font-size: 0.82rem; }
+  .be-testimonials__site { color: var(--c-primary, #008378); text-decoration: none; font-size: 0.85rem; }
+  .be-testimonials__tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
+  .be-testimonials__tags em {
+    font-style: normal; font-size: 0.75rem; background: #f1f5f9; color: #475569;
+    padding: 0.15rem 0.55rem; border-radius: 999px;
+  }
+</style>
