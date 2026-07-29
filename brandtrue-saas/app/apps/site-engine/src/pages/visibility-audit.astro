@@ -50,8 +50,8 @@ const faqs = [
 <SiteLayout
   siteName={site.name}
   siteId={site.id}
-  title="Free Visibility Audit for Wellness Businesses — Lola Media Design"
-  description="A free visibility audit that shows how visible and trusted you look when someone, or an AI, is deciding whether to book you."
+  title="Free Website Audit — SEO, Google & AI Visibility Check — Lola Media Design"
+  description="A free website audit and SEO health check for wellness businesses. See how visible and trusted you look across your site, Google, reviews and AI search when someone is deciding whether to book you."
   settings={(site.settings as any) ?? {}}
   supabaseUrl={env.url}
   anonKey={env.anonKey}
@@ -62,8 +62,9 @@ const faqs = [
       <p class="lm-eyebrow" data-anim>Free Visibility Audit</p>
       <h1 data-anim style="--anim-delay:.1s">Your work speaks for itself. Does your online presence?</h1>
       <p class="va-hero__sub" data-anim style="--anim-delay:.15s">
-        A free visibility audit that shows how visible and trusted you look when someone, or an AI, is
-        deciding whether to book you. Takes about two minutes to start. Serving wellness businesses
+        A free website audit that shows how visible and trusted you look when someone, or an AI, is
+        deciding whether to book you. A quick SEO and visibility health check across your website,
+        Google, reviews and AI search. Takes about two minutes to start. Serving wellness businesses
         across New Zealand, Australia, the US, UK, and Canada.
       </p>
       <div class="va-hero__cta" data-anim style="--anim-delay:.25s">
@@ -87,7 +88,7 @@ const faqs = [
   <section class="va-report">
     <div class="va-report__inner">
       <h2 data-anim>What your free report shows you</h2>
-      <p class="va-report__lead" data-anim>Your report gives each area a simple score out of 100 and a plain-English note on what it means. These are opportunity scores, not grades. They show you where a small change could make the biggest difference.</p>
+      <p class="va-report__lead" data-anim>It works like a website health check and a mini SEO audit rolled into one. Your report gives each area a simple score out of 100 and a plain-English note on what it means. These are opportunity scores, not grades. They show you where a small change could make the biggest difference.</p>
       <div class="va-report__grid">
         {report.map((r, i) => (
           <div class="va-card" data-anim style={`--anim-delay:${0.08 * i}s`}>
@@ -127,15 +128,16 @@ const faqs = [
           <h3>Visibility Audit</h3>
           <p>Think of the free report as a health check. It shows you where you stand today and what deserves attention first.</p>
         </div>
-        <div class="va-tier va-tier--paid" data-anim style="--anim-delay:.12s">
+        <a class="va-tier va-tier--paid" href="/deep-brand-audit" data-anim style="--anim-delay:.12s">
           <p class="va-tier__tag">Paid, hands-on</p>
-          <h3>Full Brand Audit</h3>
-          <p>If you want to go deeper, the full Brand Audit is a hands-on review of your whole brand. Your photography, website, messaging, and the details that build trust, all mapped into one clear plan you can follow or hand to us to build.</p>
-        </div>
+          <h3>Deep Brand Audit</h3>
+          <p>If you want to go deeper, the Deep Brand Audit is a hands-on brand strategy session plus a review of your whole brand. Your photography, website, messaging, and the details that build trust, all mapped into one clear plan you can follow or hand to us to build. Learn more &rarr;</p>
+        </a>
       </div>
-      <p class="va-tiers__note" data-anim>Most people start with the free report. If it points to something worth fixing, the full audit is the natural next step. There is no obligation either way.</p>
+      <p class="va-tiers__note" data-anim>Most people start with the free report. If it points to something worth fixing, the Deep Brand Audit is the natural next step. There is no obligation either way.</p>
       <div class="va-tiers__cta" data-anim>
         <a class="lm-btn" href={AUDIT_HREF}>Get My Free Visibility Audit</a>
+        <a class="lm-btn lm-btn--outline" href="/deep-brand-audit">See the Deep Brand Audit</a>
       </div>
     </div>
   </section>
@@ -217,7 +219,9 @@ const faqs = [
   .va-tiers { background: var(--c-cream); padding: clamp(3rem, 7vw, 5rem) 1.5rem; }
   .va-tiers__inner { max-width: 60rem; margin: 0 auto; text-align: center; }
   .va-tiers__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.4rem; margin-top: 2rem; text-align: left; }
-  .va-tier { background: var(--c-bg); border-radius: 1rem; padding: 1.8rem; border: 1px solid rgba(10, 92, 82, 0.1); }
+  .va-tier { background: var(--c-bg); border-radius: 1rem; padding: 1.8rem; border: 1px solid rgba(10, 92, 82, 0.1); text-decoration: none; color: inherit; display: block; }
+  a.va-tier { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  a.va-tier:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(0,0,0,0.18); }
   .va-tier--paid { background: var(--c-primary-deep); color: #eef5f3; }
   .va-tier__tag { text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.72rem; font-weight: 700; color: var(--c-accent); margin: 0 0 0.5rem; }
   .va-tier h3 { font-family: var(--f-heading); font-weight: 600; font-size: 1.5rem; margin: 0 0 0.7rem; color: var(--c-primary); }
