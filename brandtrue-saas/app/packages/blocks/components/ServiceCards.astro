@@ -51,7 +51,9 @@ function cellsFor(item: Record<string, any>) {
             </div>
           )}
           <div class="lm-services__card-body">
-            {item.eyebrow && <span class="lm-services__tag">{item.eyebrow}</span>}
+            {item.eyebrow && (
+              <span class:list={["lm-services__tag", { "lm-services__tag--muted": /add.?on/i.test(String(item.eyebrow)) }]}>{item.eyebrow}</span>
+            )}
             <h3>{item.title}</h3>
             <p>{item.body}</p>
             <span class="lm-services__link">{item.link_label || "Learn more"} <span class="lm-services__link-arrow" aria-hidden="true">→</span></span>
@@ -141,6 +143,9 @@ function cellsFor(item: Record<string, any>) {
     color: var(--c-accent); font-weight: 700; font-size: 0.72rem;
     letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 0.55rem;
   }
+  /* an "add on" reads as secondary to the core services */
+  .lm-services__tag--muted { color: #7d8b88; }
+  .lm-services__card--text:has(.lm-services__tag--muted) { border-top-color: #c9d6d1; }
 
   .lm-services__card-body { padding: 1.5rem; display: flex; flex-direction: column; flex: 1; }
   h3 { font-family: var(--f-heading); font-weight: 600; color: var(--c-primary); font-size: 1.4rem; margin: 0 0 0.6rem; }

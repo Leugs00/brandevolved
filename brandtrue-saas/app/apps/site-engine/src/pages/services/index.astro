@@ -17,14 +17,14 @@ const DISCOVERY = "/contact";
 const AUDIT = "/visibility-audit";
 
 const cards = [
-  { title: "Brand Photography", body: "Real photos of you and your practice. No stock, no guessing.", href: "/services/brand-photography", link_label: "Learn more" },
-  { title: "Brand & Design", body: "A logo, colours, and templates that actually match, and stay that way.", href: "/services/brand-and-design", link_label: "Learn more" },
-  { title: "Website Design & Development", body: "A site that works as hard as you do, built to be found and to convert.", href: "/services/website-design-and-development", link_label: "Learn more" },
+  { eyebrow: "Core service", title: "Brand & Design", body: "Brand design that fits your practice: a logo, colours, and templates that actually match, and stay that way.", href: "/services/brand-and-design", link_label: "Learn more" },
+  { eyebrow: "Core service", title: "Website Design & Development", body: "Website design and development that works as hard as you do, built to be found and to convert.", href: "/services/website-design-and-development", link_label: "Learn more" },
+  { eyebrow: "Add on", title: "Brand Photography", body: "Real photos of you and your practice, in person when you are nearby. No stock, no guessing.", href: "/services/brand-photography", link_label: "Learn more" },
 ];
 
 const steps = [
   { title: "Discovery Call", body: "We map your story, your ideal client, and where your current brand is losing trust." },
-  { title: "Build", body: "Photography, brand, and website come together as one system, not three separate projects." },
+  { title: "Build", body: "Your brand and website come together as one system, not two separate projects, with photography folded in if you are using it." },
   { title: "Launch & Grow", body: "You go live with a brand that finally feels like one thing, because it is." },
 ];
 
@@ -38,8 +38,8 @@ const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
 <SiteLayout
   siteName={site.name}
   siteId={site.id}
-  title="Services — One Team, Three Services for Wellness Brands — Lola Media Design"
-  description="Photography, brand, and website design for wellness businesses, working together from the start. One team, three services, no handoffs lost in translation."
+  title="Brand & Website Design for Wellness Businesses — Lola Media Design"
+  description="Brand design and website design and development for wellness businesses, built together as one system by one designer. Working remotely across New Zealand and worldwide, with in-house brand photography when you want it."
   settings={(site.settings as any) ?? {}}
   supabaseUrl={env.url}
   anonKey={env.anonKey}
@@ -48,8 +48,9 @@ const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
   <header class="sp-hero">
     <div class="sp-hero__inner">
       <p class="lm-eyebrow" data-anim>Services</p>
-      <h1 data-anim style="--anim-delay:.1s">One Team. Three Services.</h1>
-      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">Photography, brand, and website design for wellness businesses, working together from the start, not stitched together after the fact.</p>
+      <h1 data-anim style="--anim-delay:.1s">Brand &amp; Website Design for Wellness Businesses</h1>
+      <p class="sp-hero__sub" data-anim style="--anim-delay:.15s">Your brand and your website, designed and built together as one system, by one designer who actually gets to know your work. With brand photography in house when you want it.</p>
+      <p class="sp-hero__region" data-anim style="--anim-delay:.2s">Working remotely with wellness businesses across New Zealand, Australia, the US, UK, and Canada.</p>
       <div class="sp-ctas" data-anim style="--anim-delay:.25s">
         <a class="lm-btn" href={DISCOVERY}>Book a Discovery Call</a>
         <a class="lm-btn lm-btn--outline" href={AUDIT}>Get Your Free Visibility Audit</a>
@@ -59,16 +60,35 @@ const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
 
   <section class="sp-section sp-section--white">
     <div class="sp-narrow">
-      <h2 class="sp-h2" data-anim>Why one roof beats three vendors</h2>
+      <h2 class="sp-h2" data-anim>Why one designer beats a handful of vendors</h2>
       <span class="sp-rule" aria-hidden="true" data-anim></span>
       <div class="sp-prose">
-        <p data-anim>Most businesses end up with a photographer, a designer, and a web developer who have never spoken to each other. Every handoff loses something. Your photos don't quite match your brand. Your brand doesn't quite match your site. Nothing feels like one thing.</p>
-        <p data-anim>One team building all three together means nothing gets lost in translation, because there's no translation needed.</p>
+        <p data-anim>Most businesses end up with a brand designer and a web developer who have never spoken to each other, and a folder of photos from someone else again. Every handoff loses something. Your brand doesn't quite match your site. Your site doesn't quite sound like you. Nothing feels like one thing.</p>
+        <p data-anim>When the same person designs your brand and builds your website, nothing gets lost in translation, because there's no translation needed. It is one decision, carried all the way through.</p>
       </div>
     </div>
   </section>
 
-  <ServiceCards data={{ heading: "The three services", background: "cream", items: cards }} context={context} />
+  <ServiceCards
+    data={{
+      heading: "Where I can help",
+      intro: "Brand and website are the core of what I do, and they work best together. Photography is the extra that makes both of them better when you are able to have it.",
+      background: "cream",
+      items: cards,
+    }}
+    context={context}
+  />
+
+  <section class="sp-section sp-section--white">
+    <div class="sp-narrow">
+      <h2 class="sp-h2" data-anim>Photography, when it makes sense</h2>
+      <span class="sp-rule" aria-hidden="true" data-anim></span>
+      <div class="sp-prose">
+        <p data-anim>Plenty of my clients work with me entirely online, and never step in front of my camera. Brand and website work beautifully on their own, and most projects start exactly there.</p>
+        <p data-anim>But when we can shoot together, it lifts everything. Real photos of you and your space, made by the same person designing your brand and building your site, so the images fit the design instead of being squeezed in afterwards. If you are near Warkworth, Matakana or Auckland, it is worth doing. If you are not, we build you something excellent without it.</p>
+      </div>
+    </div>
+  </section>
 
   <section class="sp-section sp-section--white">
     <div class="sp-wide sp-center">
@@ -92,7 +112,7 @@ const ensureHttp = (u: string) => (/^https?:\/\//.test(u) ? u : `https://${u}`);
 
   <CtaBanner
     data={{
-      heading: "Ready to stop juggling three vendors?",
+      heading: "Ready to stop juggling vendors?",
       body: "Book a friendly discovery call, or get your free visibility audit to see how your brand shows up first.",
       buttons: [{ label: "Book a Discovery Call", href: DISCOVERY }, { label: "Get Your Free Visibility Audit", href: AUDIT }],
     }}
